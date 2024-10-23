@@ -38,7 +38,7 @@ class FastFood_Layer(Module):
         output_dim: int
             The ouput dimension to be projected into
     """
-    def __init__(self, input_dim, output_dim, learn_S=False, learn_G_B=False, device=None):
+    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G_B=False, device=None):
         super(FastFood_Layer, self).__init__()
 
         self.input_dim = input_dim
@@ -46,6 +46,7 @@ class FastFood_Layer(Module):
         self.learn_S = learn_S
         self.learn_G_B = learn_G_B
         self.device = device
+        self.scale = scale
         self.P = None
         self.B = None 
         self.G = None
@@ -133,7 +134,7 @@ class FastFood_Layer(Module):
             SHGPHBx = HGPHBx * self.S
 
             # Normalize and recover original shape
-            Vx = (sqrt(1.0/self.input_dim) * SHGPHBx).view(x_shape)
+            Vx = ((1.0/(scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
 
             # Collect the result for stacking
             stacked_results.append(Vx)
