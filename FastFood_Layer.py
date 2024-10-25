@@ -134,7 +134,7 @@ class FastFood_Layer(Module):
             SHGPHBx = HGPHBx * self.S
 
             # Normalize and recover original shape
-            Vx = ((1.0/(scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
+            Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
 
             # Collect the result for stacking
             stacked_results.append(Vx)

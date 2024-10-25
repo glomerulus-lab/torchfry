@@ -14,7 +14,7 @@ import sys
 import os
 
 # Add the path to sys.path
-sys.path.append(os.path.abspath(r"C:\research\projections\structured-nets"))
+sys.path.append(os.path.abspath(r"C:\research\fastfood_baseline\structured-nets"))
 
 # Import the module with hyphen
 structure = __import__('pytorch.structure', fromlist=['fastfood'])
@@ -23,11 +23,10 @@ structure = __import__('pytorch.structure', fromlist=['fastfood'])
 fastfood = structure.fastfood
 
 
-
 #dimension
 d = 256
 #data points
-num_data = 20000 
+num_data = 10_000 
 x = np.random.rand(num_data, d)
 
 #universal scale
@@ -93,33 +92,49 @@ for dim in dimensions:
     ff_time.append(end-start)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# Warm up
+S = np.random.randn(1024)
+G = np.random.randn(1024)
+B = np.random.randn(1024)
+P = np.random.permutation(1024)    
+x_test = x = np.random.rand(10_000, 1024)
+S = torch.tensor(S, dtype=torch.float, device=device)
+G = torch.tensor(G, dtype=torch.float, device=device)
+B = torch.tensor(B, dtype=torch.float, device=device)
+P = torch.tensor(P, dtype=torch.long, device=device)
+x_test = torch.tensor(x_test, dtype=torch.float, device=device)
+fastfood.fastfood_multiply(S,G,B,P,x_test)
+
 ff_2_time = []
 for n in dimensions:
     S = np.random.randn(n)
     G = np.random.randn(n)
     B = np.random.randn(n)
-    P = np.random.permutation(n)
-    x = np.random.randn(20000,n)
-
+    P = np.random.permutation(n)    
+    x_test = x = np.random.rand(10_000, n)
     S = torch.tensor(S, dtype=torch.float, device=device)
     G = torch.tensor(G, dtype=torch.float, device=device)
     B = torch.tensor(B, dtype=torch.float, device=device)
     P = torch.tensor(P, dtype=torch.long, device=device)
-    x = torch.tensor(x, dtype=torch.float, device=device)
+    x_test = torch.tensor(x_test, dtype=torch.float, device=device)
 
     start = time.time()
-    fastfood.fastfood_multiply(S,G,B,P,x)
+    fastfood.fastfood_multiply(S,G,B,P,x_test)
 
     end = time.time()
     ff_2_time.append(end-start)
 
-ff_3_time=[]
 x = torch.tensor(x, dtype=torch.float32, device=device) if isinstance(x, np.ndarray) else x
+fast_food_obj = FastFoodRandomFeatures(dimensions[0])
+fast_food_obj.new_feature_map(device, torch.float32)
+fast_food_obj.forward(x)
+ff_3_time=[]
+
 for n in dimensions:
     fast_food_obj = FastFoodRandomFeatures(n)
     fast_food_obj.new_feature_map(device, torch.float32)
     start = time.time()
-    fast_food_obj.forward(x)
+    phi = fast_food_obj.forward(x)
     end = time.time()
     ff_3_time.append(end-start)
 
@@ -127,10 +142,11 @@ for n in dimensions:
 plt.plot(dimensions,rks_time, label='RKS_Time', marker='o')
 plt.plot(dimensions,rks_mine_time, label='RKS_Personal_Time', marker='o')
 plt.plot(dimensions,ff_time, label='FF_built-in_Time', marker='o')
-plt.plot(dimensions,ff_2_time, label='FF_structured-nets_Time', marker='o')
-plt.plot(dimensions,ff_3_time, label='FF_OnLearning_Time', marker='o')
+plt.plot(dimensions,ff_2_time, label='FF_structured-nets_Time (GPU)', marker='o')
+plt.plot(dimensions,ff_3_time, label='FF_OnLearning_Time (GPU)', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Time (s)')
+plt.yscale('log')
 plt.title('Projection Times')
-plt.legend()
+plt.legend(loc='best')
 plt.show()
