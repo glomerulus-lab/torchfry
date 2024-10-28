@@ -4,12 +4,13 @@ import numpy as np
 from torch.nn import init
 from torch.nn import Module
 from torch.nn import ModuleList
-from math import sqrt, log
+from math import sqrt
 from torch.nn.parameter import Parameter
 from scipy.stats import chi
 
 def hadamard_transform(u, normalize=False):
     """Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
+
     n must be a power of 2.
     Parameters:
         u: Tensor of shape (..., n)
@@ -36,13 +37,14 @@ class Fastfood_Stack_Object(Module):
     Arguments
     ---------
         input_dim: int 
-            The input data feature dimension
+            The input data feature dimension.
         output_dim: int
-            The ouput dimension to be projected into
+            The output dimension to be projected into.
     """
     def __init__(self, input_dim, scale, learn_S=False, learn_G_B=False, device=None):
         super(Fastfood_Stack_Object, self).__init__()
 
+        # Initialize parameters for Fastfood function
         self.input_dim = input_dim
         self.learn_S = learn_S
         self.learn_G_B = learn_G_B
@@ -63,9 +65,23 @@ class Fastfood_Stack_Object(Module):
             self.S = Parameter(torch.Tensor(self.input_dim)) 
             init.normal_(self.S, std=sqrt(1./self.input_dim))
 
+        # Sample required matrices
+        self.new_feature_map(torch.float32)
+        
     def new_feature_map(self, dtype):
+        """Sample new permutation and scaling matrices for the Fastfood feature map.
+
+        This function initializes the permutation matrix P, the binary scaling 
+        matrix B, the Gaussian scaling matrix G, and the scaling matrix S based 
+        on the learnable parameters.
+
+        Arguments:
+        ----------
+        dtype (torch.dtype): The data type for the matrices.
+        """
         # Device set 
         device = self.device
+        
         # Permutation matrix P 
         self.P = torch.randperm(
             self.input_dim, 
@@ -73,7 +89,7 @@ class Fastfood_Stack_Object(Module):
         )
 
         if not self.learn_G_B:
-            # Binary scaling matrix B 
+            # Binary scaling matrix B sampled from {-1, 1}
             self.B = torch.tensor(
                 np.random.choice([-1.0, 1.0], 
                     size=self.input_dim
@@ -83,7 +99,7 @@ class Fastfood_Stack_Object(Module):
                 requires_grad=True
             )
 
-            # Gaussian scaling matrix G 
+            # Gaussian scaling matrix G initialized to random values
             self.G = torch.zeros(
                 self.input_dim, 
                 dtype=dtype,
@@ -92,7 +108,7 @@ class Fastfood_Stack_Object(Module):
             self.G.normal_()
 
         if not self.learn_S: 
-            # Scaling matrix S
+            # Scaling matrix S sampled from a chi-squared distribution
             self.S = torch.tensor(
                 chi.rvs( 
                     df=self.input_dim, 
@@ -104,28 +120,30 @@ class Fastfood_Stack_Object(Module):
 
     def forward(self, x):
         """
-        Compute the FastFood feature map for the given input. 
+        Compute the Fastfood feature map for the given input. 
 
         Arguments: 
         ----------
         x : (N, L, H, D)
             The input tensor.
+        
+        Returns:
+        -------
+        Tensor: The transformed tensor after applying the Fastfood feature map.
         """ 
         # Original shape
         x_shape = x.shape
-
-        self.new_feature_map("float")
         
-        # Reshape for Fastfood
+        # Reshape for Fastfood processing
         x_run = x.view(-1, self.input_dim)
 
-        # Fastfood multiplication
-        Bx = x_run * self.B
-        HBx = hadamard_transform(Bx)
-        PHBx = HBx[:, self.P]
-        GPHBx = PHBx * self.G
-        HGPHBx = hadamard_transform(GPHBx)
-        SHGPHBx = HGPHBx * self.S
+        # Fastfood multiplication steps
+        Bx = x_run @ torch.diag(self.B)           # Apply binary scaling
+        HBx = hadamard_transform(Bx)              # Hadamard transform
+        PHBx = HBx[:, self.P]                     # Apply permutation
+        GPHBx = PHBx @ torch.diag(self.G)         # Apply Gaussian scaling
+        HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
+        SHGPHBx = HGPHBx @ torch.diag(self.S)     # Final scaling
 
         # Normalize and recover original shape
         Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
@@ -133,22 +151,55 @@ class Fastfood_Stack_Object(Module):
         return Vx
 
 class Fastfood_Layer(Module):
-        def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G_B=False, device=None):
-            super(Fastfood_Layer, self).__init__()
+    """
+    Layer that stacks multiple Fastfood transformations to project input 
+    features into a higher dimensional space.
 
-            self.stack = ModuleList([Fastfood_Stack_Object(input_dim, scale, learn_S, 
-                                                              learn_G_B, device)]
-                                                              for _ in range(math.ceil(output_dim/input_dim)))
+    Arguments:
+    ----------
+        input_dim (int): The input dimension of the features.
+        output_dim (int): The desired output dimension of the layer.
+        scale (float): A scaling factor for the output.
+        learn_S (bool): If True, allows the scaling matrix S to be learnable.
+        learn_G_B (bool): If True, allows the binary and Gaussian scaling matrices to be learnable.
+        device (torch.device, optional): The device on which to allocate the parameters.
+    """
+    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G_B=False, device=None):
+        super(Fastfood_Layer, self).__init__()
 
-            def forward(self, x):
-                stacked_output = []
+        # Create a list of Fastfood stack objects to reach the desired output dimension
+        self.stack = ModuleList(
+            [Fastfood_Stack_Object(input_dim, scale, learn_S, learn_G_B, device)
+             for _ in range(math.ceil(output_dim / input_dim))]
+        )
+        self.output_dim = output_dim  # Store the desired output dimension
 
-                for i, l in enumerate(self.stack):
-                    stacked_output.append(l.forward(x))
+    def forward(self, x):
+        """
+        Forward pass through the Fastfood layer.
 
-                stacked_output = torch.cat(stacked_output, dim=-1)
+        This method applies all stacked Fastfood transformations to the input tensor 
+        and concatenates the outputs.
 
+        Arguments:
+        ----------
+        x (Tensor): Input tensor of shape (N, L, H, D).
 
-                stacked_output = stacked_output[..., :self.output_dim]
+        Returns:
+        -------
+        Tensor: The concatenated output tensor of shape (N, L, H, output_dim).
+        """
+        stacked_output = []
 
-                return stacked_output
+        # Apply each Fastfood stack and collect results
+        for i, l in enumerate(self.stack):
+            stacked_output.append(l.forward(x))
+
+        # Concatenate results along the last dimension
+        stacked_output = torch.cat(stacked_output, dim=-1)
+
+        # Trim the output to the desired output dimension
+        stacked_output = stacked_output[..., :self.output_dim]
+
+        return stacked_output
+
