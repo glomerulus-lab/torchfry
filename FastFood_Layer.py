@@ -1,7 +1,9 @@
 import torch
+import math
 import numpy as np 
 from torch.nn import init
 from torch.nn import Module
+from torch.nn import ModuleList
 from math import sqrt, log
 from torch.nn.parameter import Parameter
 from scipy.stats import chi
@@ -24,7 +26,7 @@ def hadamard_transform(u, normalize=False):
     return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
-class FastFood_Layer(Module):
+class Fastfood_Stack_Object(Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
 
@@ -38,11 +40,10 @@ class FastFood_Layer(Module):
         output_dim: int
             The ouput dimension to be projected into
     """
-    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G_B=False, device=None):
-        super(FastFood_Layer, self).__init__()
+    def __init__(self, input_dim, scale, learn_S=False, learn_G_B=False, device=None):
+        super(Fastfood_Stack_Object, self).__init__()
 
         self.input_dim = input_dim
-        self.output_dim = output_dim
         self.learn_S = learn_S
         self.learn_G_B = learn_G_B
         self.device = device
@@ -112,38 +113,40 @@ class FastFood_Layer(Module):
         """ 
         # Original shape
         x_shape = x.shape
-
-        #number of times to run to build into higher dimension
-        number_runs = self.output_dim // self.input_dim
-
-        #store stacks
-        stacked_results = []
-
-        for _ in range(number_runs):
-            #generate new matrices
-            self.new_feature_map(float)
-            # Reshape for Fastfood
-            x_run = x.view(-1, self.input_dim)
-
-            # Fastfood multiplication
-            Bx = x_run * self.B
-            HBx = hadamard_transform(Bx)
-            PHBx = HBx[:, self.P]
-            GPHBx = PHBx * self.G
-            HGPHBx = hadamard_transform(GPHBx)
-            SHGPHBx = HGPHBx * self.S
-
-            # Normalize and recover original shape
-            Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
-
-            # Collect the result for stacking
-            stacked_results.append(Vx)
         
-        # Combine all matrices
-        stacked_output = torch.cat(stacked_results, dim=-1)
-        
-        # Cut off end to equal output dimension
-        stacked_output = stacked_output[..., :self.output_dim]
+        # Reshape for Fastfood
+        x_run = x.view(-1, self.input_dim)
 
-        return stacked_output
+        # Fastfood multiplication
+        Bx = x_run * self.B
+        HBx = hadamard_transform(Bx)
+        PHBx = HBx[:, self.P]
+        GPHBx = PHBx * self.G
+        HGPHBx = hadamard_transform(GPHBx)
+        SHGPHBx = HGPHBx * self.S
 
+        # Normalize and recover original shape
+        Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
+
+        return Vx
+
+class Fastfood_Layer(Module):
+        def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G_B=False, device=None):
+            super(Fastfood_Layer, self).__init__()
+
+            self.stack = ModuleList([Fastfood_Stack_Object(input_dim, scale, learn_S, 
+                                                              learn_G_B, device)]
+                                                              for _ in range(math.ceil(output_dim/input_dim)))
+
+            def forward(self, x):
+                stacked_output = []
+
+                for i, l in enumerate(self.stack):
+                    stacked_output.append(l.forward(x))
+
+                stacked_output = torch.cat(stacked_output, dim=-1)
+
+
+                stacked_output = stacked_output[..., :self.output_dim]
+
+                return stacked_output
