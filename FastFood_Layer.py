@@ -113,6 +113,8 @@ class Fastfood_Stack_Object(Module):
         """ 
         # Original shape
         x_shape = x.shape
+
+        self.new_feature_map("float")
         
         # Reshape for Fastfood
         x_run = x.view(-1, self.input_dim)
