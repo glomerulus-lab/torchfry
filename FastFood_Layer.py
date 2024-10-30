@@ -2,8 +2,7 @@ import torch
 import math
 import numpy as np 
 from torch.nn import init
-from torch.nn import Module
-from torch.nn import ModuleList
+import torch.nn as nn
 from math import sqrt
 from torch.nn.parameter import Parameter
 from scipy.stats import chi
@@ -27,7 +26,7 @@ def hadamard_transform(u, normalize=False):
     return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
-class Fastfood_Stack_Object(Module):
+class Fastfood_Stack_Object(nn.Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
 
@@ -138,19 +137,19 @@ class Fastfood_Stack_Object(Module):
         x_run = x.view(-1, self.input_dim)
 
         # Fastfood multiplication steps
-        Bx = x_run @ torch.diag(self.B)           # Apply binary scaling
+        Bx = x_run * self.B                       # Apply binary scaling
         HBx = hadamard_transform(Bx)              # Hadamard transform
         PHBx = HBx[:, self.P]                     # Apply permutation
-        GPHBx = PHBx @ torch.diag(self.G)         # Apply Gaussian scaling
+        GPHBx = PHBx * self.G                     # Apply Gaussian scaling
         HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
-        SHGPHBx = HGPHBx @ torch.diag(self.S)     # Final scaling
+        SHGPHBx = HGPHBx * self.S                 # Final scaling
 
         # Normalize and recover original shape
         Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx).view(x_shape)
 
         return Vx
 
-class Fastfood_Layer(Module):
+class Fastfood_Layer(nn.Module):
     """
     Layer that stacks multiple Fastfood transformations to project input 
     features into a higher dimensional space.
@@ -168,7 +167,7 @@ class Fastfood_Layer(Module):
         super(Fastfood_Layer, self).__init__()
 
         # Create a list of Fastfood stack objects to reach the desired output dimension
-        self.stack = ModuleList(
+        self.stack = nn.ModuleList(
             [Fastfood_Stack_Object(input_dim, scale, learn_S, learn_G_B, device)
              for _ in range(math.ceil(output_dim / input_dim))]
         )
