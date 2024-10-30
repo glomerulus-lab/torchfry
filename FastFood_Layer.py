@@ -82,40 +82,48 @@ class Fastfood_Stack_Object(nn.Module):
         device = self.device
         
         # Permutation matrix P 
-        self.P = torch.randperm(
+        P = torch.randperm(
             self.input_dim, 
             device=device 
         )
+        # Register as buffer
+        self.register_buffer('P', P)
 
         if not self.learn_G_B:
             # Binary scaling matrix B sampled from {-1, 1}
-            self.B = torch.tensor(
+            B = torch.tensor(
                 np.random.choice([-1.0, 1.0], 
                     size=self.input_dim
                 ),
                 dtype=dtype, 
                 device=device, 
-                requires_grad=True
             )
+            # Register as buffer
+            self.register_buffer('B', B)
 
             # Gaussian scaling matrix G initialized to random values
-            self.G = torch.zeros(
+            G = torch.zeros(
                 self.input_dim, 
                 dtype=dtype,
-                device=device
+                device=device,
             )
-            self.G.normal_()
+            G.normal_()
+            # Register as buffer
+            self.register_buffer('G', G)
 
         if not self.learn_S: 
             # Scaling matrix S sampled from a chi-squared distribution
-            self.S = torch.tensor(
+            S = torch.tensor(
                 chi.rvs( 
                     df=self.input_dim, 
                     size=self.input_dim
                 ), 
                 dtype=dtype,
-                device=device 
+                device=device,
+                 
             ) / torch.norm(self.G)
+            # Register as buffer
+            self.register_buffer('S', S)
 
     def forward(self, x):
         """
