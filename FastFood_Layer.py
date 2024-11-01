@@ -82,48 +82,43 @@ class Fastfood_Stack_Object(nn.Module):
         device = self.device
         
         # Permutation matrix P 
-        P = torch.randperm(
+        self.P = torch.randperm(
             self.input_dim, 
-            device=device 
+            device=device,
+            requires_grad=False
         )
-        # Register as buffer
-        self.register_buffer('P', P)
 
         if not self.learn_G_B:
             # Binary scaling matrix B sampled from {-1, 1}
-            B = torch.tensor(
+            self.B = torch.tensor(
                 np.random.choice([-1.0, 1.0], 
                     size=self.input_dim
                 ),
                 dtype=dtype, 
                 device=device, 
+                requires_grad=False
             )
-            # Register as buffer
-            self.register_buffer('B', B)
 
             # Gaussian scaling matrix G initialized to random values
-            G = torch.zeros(
+            self.G = torch.zeros(
                 self.input_dim, 
                 dtype=dtype,
                 device=device,
+                requires_grad=False
             )
-            G.normal_()
-            # Register as buffer
-            self.register_buffer('G', G)
+            self.G.normal_()
 
         if not self.learn_S: 
             # Scaling matrix S sampled from a chi-squared distribution
-            S = torch.tensor(
+            self.S = torch.tensor(
                 chi.rvs( 
                     df=self.input_dim, 
                     size=self.input_dim
                 ), 
                 dtype=dtype,
                 device=device,
-                 
-            ) / torch.norm(self.G)
-            # Register as buffer
-            self.register_buffer('S', S)
+                requires_grad=False
+                ) / torch.norm(self.G)
 
     def forward(self, x):
         """
@@ -176,7 +171,7 @@ class Fastfood_Layer(nn.Module):
 
         # Create a list of Fastfood stack objects to reach the desired output dimension
         self.stack = nn.ModuleList(
-            [Fastfood_Stack_Object(input_dim, scale, learn_S, learn_G_B, device)
+            [Fastfood_Stack_Object(input_dim=input_dim, scale=scale, learn_S=learn_S, learn_G_B=learn_G_B, device=device)
              for _ in range(math.ceil(output_dim / input_dim))]
         )
         self.output_dim = output_dim  # Store the desired output dimension
