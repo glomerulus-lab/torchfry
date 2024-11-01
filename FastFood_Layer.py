@@ -176,6 +176,26 @@ class Fastfood_Layer(nn.Module):
         )
         self.output_dim = output_dim  # Store the desired output dimension
 
+    def phi(self, x):
+        """
+        Apply nonlinearity to output.
+
+        Arguments:
+        ----------
+            x (tensor): Input tensor that will be transformed.
+        """
+        # Create a uniform distribution between 0 and 2 * pi
+        distr = torch.distributions.Uniform(0, 2 * torch.pi)
+
+        # Sample output_dim number of values from the uniform distribution
+        U = distr.sample((self.output_dim,))
+
+        # Apply the cosine function to x, adding U for randomness
+        x = torch.cos(x + U)
+
+        # Normalization
+        return x * math.sqrt(2.0 / self.output_dim)
+
     def forward(self, x):
         """
         Forward pass through the Fastfood layer.
@@ -203,5 +223,5 @@ class Fastfood_Layer(nn.Module):
         # Trim the output to the desired output dimension
         stacked_output = stacked_output[..., :self.output_dim]
 
-        return stacked_output
-
+        return self.phi(stacked_output)
+        
