@@ -6,7 +6,6 @@ import torch.nn as nn
 from math import sqrt
 from torch.nn.parameter import Parameter
 from scipy.stats import chi
-from FastFood_BaseLine.structured_nets.pytorch.structure.hadamard import hadamard_transform_cuda
 
 def hadamard_transform(u, normalize=False):
     """Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
@@ -142,10 +141,10 @@ class Fastfood_Stack_Object(nn.Module):
 
         # Fastfood multiplication steps
         Bx = x_run * self.B                       # Apply binary scaling
-        HBx = hadamard_transform_cuda(Bx)         # Hadamard transform
+        HBx = hadamard_transform(Bx)              # Hadamard transform
         PHBx = HBx[:, self.P]                     # Apply permutation
         GPHBx = PHBx * self.G                     # Apply Gaussian scaling
-        HGPHBx = hadamard_transform_cuda(GPHBx)   # Another Hadamard transform
+        HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
         SHGPHBx = HGPHBx * self.S                 # Final scaling
 
         # Normalize and recover original shape
@@ -175,6 +174,7 @@ class Fastfood_Layer(nn.Module):
             [Fastfood_Stack_Object(input_dim=input_dim, scale=scale, learn_S=learn_S, learn_G_B=learn_G_B, device=device)
              for _ in range(math.ceil(output_dim / input_dim))]
         )
+        self.input_dim = input_dim    # Store input dimension
         self.output_dim = output_dim  # Store the desired output dimension
         self.device = device          # Device to store on
             
@@ -210,11 +210,8 @@ class Fastfood_Layer(nn.Module):
         -------
         Tensor: The concatenated output tensor of shape (N, L, H, output_dim).
         """
-        stacked_output = []
-
-        # Apply each Fastfood stack and collect results
-        for i, l in enumerate(self.stack):
-            stacked_output.append(l.forward(x))
+        # Call forward for all objects
+        stacked_output = [l(x) for l in self.stack]
 
         # Concatenate results along the last dimension
         stacked_output = torch.cat(stacked_output, dim=-1)
