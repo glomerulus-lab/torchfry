@@ -7,7 +7,7 @@ from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
 from FastFood_BaseLine.structured_nets.pytorch.structure import fastfood
 from FastFood_Layer import Fastfood_Layer
-import time
+import time  
 import torch
 import math
 
