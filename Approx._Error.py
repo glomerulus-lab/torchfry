@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
 from FastFood_Layer import Fastfood_Layer
+from RKS_Layer import RKS_Layer
 import torch
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -50,9 +51,20 @@ for dim in dimensions:
     difference = np.linalg.norm(exact_rbf-ff_approx, 'fro')
     ff_error.append(difference/num_data)
 
+#ff error
+rks_2_error = []
+for dim in dimensions:
+    rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+    phi = rks_obj.forward(x)
+
+    rks_approx = (phi @ phi.T).cpu().detach().numpy()
+    difference = np.linalg.norm(exact_rbf-rks_approx, 'fro')
+    rks_2_error.append(difference/num_data)
+
 
 plt.plot(dimensions,rks_error, label='RKS_Approx', marker='o')
 plt.plot(dimensions,ff_error, label='FF_Approx', marker='o')
+plt.plot(dimensions,rks_2_error, label='RKS_Layer_Approx', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Error')
 plt.title('Approximation Error vs. RBF Kernel')
@@ -61,6 +73,7 @@ plt.show()
 
 plt.loglog(dimensions,rks_error, label='RKS_Approx', marker='o')
 plt.loglog(dimensions,ff_error, label='FF_Approx', marker='o')
+plt.plot(dimensions,rks_2_error, label='RKS_Layer_Approx', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Error')
 plt.title('Approximation Error vs. RBF Kernel')

@@ -1,0 +1,63 @@
+import torch
+import math
+import numpy as np
+from torch.nn import init
+import torch.nn as nn
+from math import sqrt
+from torch.nn.parameter import Parameter
+
+class RKS_Layer(nn.Module):
+    """
+    Layer that stacks multiple Fastfood transformations to project input 
+    features into a higher dimensional space.
+
+    Arguments:
+    ----------
+        input_dim (int): The input dimension of the features.
+        output_dim (int): The desired output dimension of the layer.
+        scale (float): A scaling factor for the output.
+        learn_G (bool): If True, allows the Random Gaussian Matrix G to be learnable.
+        device (torch.device, optional): The device on which to allocate the parameters.
+    """
+    def __init__(self, input_dim, output_dim, scale, learn_G=False, device=None):
+        super(RKS_Layer, self).__init__()
+
+        self.input_dim = input_dim       # Data input dimension
+        self.scale = scale               # Non linearity requirement
+        self.learn_G = learn_G           # Param for learning weight
+        self.output_dim = output_dim     # Projection dimension
+        self.device = device             # GPU or CPU   
+
+        # If Gaussian is learnable
+        if self.learn_G:
+            # Make G learnable with normal initialization
+            self.G = Parameter(torch.Tensor(input_dim, output_dim).to(self.device))
+            init.normal_(self.G, std=sqrt(1. / input_dim))    
+        else:
+            # Use a fixed random Gaussian matrix for G
+            self.G = (1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device, requires_grad=False)
+
+        # Non linearity offset 
+        self.offset = 2 * torch.pi * torch.rand(output_dim, device=self.device)
+
+    def forward(self, x):
+        """
+        Forward pass through the Fastfood layer.
+
+        This method applies all stacked Fastfood transformations to the input tensor 
+        and concatenates the outputs.
+
+        Arguments:
+        ----------
+        x (Tensor): Input tensor of shape (N, L, H, D).
+
+        Returns:
+        -------
+        Tensor: The concatenated output tensor of shape (N, L, H, output_dim).
+        """
+
+        # Project and add offset
+        projected_data = x @ self.G + self.offset
+
+        # Non Linearity with scaling factor
+        return torch.sqrt(torch.tensor(2.0 / self.output_dim, device=self.device)) * torch.cos(projected_data)
