@@ -187,10 +187,7 @@ class Fastfood_Layer(nn.Module):
             x (tensor): Input tensor that will be transformed.
         """
         # Create a uniform distribution between 0 and 2 * pi
-        distr = torch.distributions.Uniform(0, 2 * torch.pi)
-
-        # Sample output_dim number of values from the uniform distribution
-        U = torch.tensor(distr.sample((self.output_dim,)), dtype=torch.float32, device=self.device)
+        U = 2 * torch.pi * torch.rand(self.output_dim, device=self.device)
 
         # Apply the cosine function to x, adding U for randomness
         x = torch.cos(x + U)

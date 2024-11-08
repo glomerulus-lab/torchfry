@@ -7,6 +7,7 @@ from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
 from FastFood_BaseLine.structured_nets.pytorch.structure import fastfood
 from FastFood_Layer import Fastfood_Layer
+from RKS_Layer import RKS_Layer
 import time  
 import torch
 import math
@@ -119,6 +120,18 @@ for n in dimensions:
     ff_3_time.append(end-start)
 ff_3_time = ff_3_time[2:]
 
+
+ff_4_time=[]
+for n in dimensions:
+    rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+
+    start = time.time()
+    phi = rks_obj.forward(x)
+    end = time.time()
+
+    ff_4_time.append(end-start)
+ff_4_time = ff_4_time[2:]
+
 #set dimensions avoid graphing the warm-up passes
 dimensions = dimensions[2:]
 
@@ -127,6 +140,7 @@ plt.plot(dimensions,rks_mine_time, label='RKS_Personal_Time', marker='o')
 plt.plot(dimensions,ff_time, label='FF_built-in_Time', marker='o')
 plt.plot(dimensions,ff_2_time, label='FF_structured-nets_Time (GPU)', marker='o')
 plt.plot(dimensions,ff_3_time, label='FastFood_Layer_Time (GPU)', marker='o')
+plt.plot(dimensions,ff_4_time, label='RKS_Layer_Time (GPU)', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Time (s)')
 plt.yscale('log')
