@@ -6,6 +6,7 @@ import torch.nn as nn
 from math import sqrt
 from torch.nn.parameter import Parameter
 from scipy.stats import chi
+from FastFood_BaseLine.structured_nets.pytorch.structure.hadamard import hadamard_transform_cuda
 
 def hadamard_transform(u, normalize=False):
     """Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
@@ -141,10 +142,10 @@ class Fastfood_Stack_Object(nn.Module):
 
         # Fastfood multiplication steps
         Bx = x_run * self.B                       # Apply binary scaling
-        HBx = hadamard_transform(Bx)              # Hadamard transform
+        HBx = hadamard_transform_cuda(Bx)         # Hadamard transform
         PHBx = HBx[:, self.P]                     # Apply permutation
         GPHBx = PHBx * self.G                     # Apply Gaussian scaling
-        HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
+        HGPHBx = hadamard_transform_cuda(GPHBx)   # Another Hadamard transform
         SHGPHBx = HGPHBx * self.S                 # Final scaling
 
         # Normalize and recover original shape
@@ -175,7 +176,8 @@ class Fastfood_Layer(nn.Module):
              for _ in range(math.ceil(output_dim / input_dim))]
         )
         self.output_dim = output_dim  # Store the desired output dimension
-
+        self.device = device          # Device to store on
+            
     def phi(self, x):
         """
         Apply nonlinearity to output.
@@ -188,7 +190,7 @@ class Fastfood_Layer(nn.Module):
         distr = torch.distributions.Uniform(0, 2 * torch.pi)
 
         # Sample output_dim number of values from the uniform distribution
-        U = distr.sample((self.output_dim,))
+        U = torch.tensor(distr.sample((self.output_dim,)), dtype=torch.float32, device=self.device)
 
         # Apply the cosine function to x, adding U for randomness
         x = torch.cos(x + U)

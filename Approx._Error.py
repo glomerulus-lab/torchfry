@@ -47,7 +47,6 @@ for dim in dimensions:
     phi = fast_food_obj.forward(x)
 
     ff_approx = (phi @ phi.T).cpu().detach().numpy()
-
     difference = np.linalg.norm(exact_rbf-ff_approx, 'fro')
     ff_error.append(difference/num_data)
 
