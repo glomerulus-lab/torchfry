@@ -22,7 +22,7 @@ scale = 0.5
 #exact rbf kernel
 exact_rbf = rbf_kernel(x, gamma=(1/(2*scale**2)))
 #new n dimension for rks and ff
-dimensions = [16,32,64,128,512,1024,2048,4096,8192]
+dimensions = [16,32,64,128,256,512,1024,2048,4096,8192]
 
 #rks error
 rks_error = []
