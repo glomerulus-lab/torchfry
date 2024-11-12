@@ -40,13 +40,14 @@ class Fastfood_Stack_Object(nn.Module):
         output_dim: int
             The output dimension to be projected into.
     """
-    def __init__(self, input_dim, scale, learn_S=False, learn_G_B=False, device=None):
+    def __init__(self, input_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None):
         super(Fastfood_Stack_Object, self).__init__()
 
         # Initialize parameters for Fastfood function
         self.input_dim = input_dim
         self.learn_S = learn_S
-        self.learn_G_B = learn_G_B
+        self.learn_G = learn_G
+        self.learn_B = learn_B
         self.device = device
         self.scale = scale
         self.P = None
@@ -55,11 +56,12 @@ class Fastfood_Stack_Object(nn.Module):
         self.S = None
         
         # Learnable Params
-        if self.learn_G_B:
-            self.B = Parameter(torch.Tensor(self.input_dim)) 
+        if self.learn_G:
             self.G = Parameter(torch.Tensor(self.input_dim)) 
-            init.normal_(self.B, std=sqrt(1./self.input_dim))
             init.normal_(self.G, std=sqrt(1./self.input_dim))
+        if self.learn_B:
+            self.B = Parameter(torch.Tensor(self.input_dim)) 
+            init.normal_(self.B, std=sqrt(1./self.input_dim))
         if self.learn_S: 
             self.S = Parameter(torch.Tensor(self.input_dim)) 
             init.normal_(self.S, std=sqrt(1./self.input_dim))
@@ -88,7 +90,7 @@ class Fastfood_Stack_Object(nn.Module):
             requires_grad=False
         )
 
-        if not self.learn_G_B:
+        if not self.learn_B:
             # Binary scaling matrix B sampled from {-1, 1}
             self.B = torch.tensor(
                 np.random.choice([-1.0, 1.0], 
@@ -98,7 +100,7 @@ class Fastfood_Stack_Object(nn.Module):
                 device=device, 
                 requires_grad=False
             )
-
+        if not self.learn_G:
             # Gaussian scaling matrix G initialized to random values
             self.G = torch.zeros(
                 self.input_dim, 
@@ -152,7 +154,7 @@ class Fastfood_Stack_Object(nn.Module):
 
         return Vx
 
-class Fastfood_Layer(nn.Module):
+class FastFood_Layer(nn.Module):
     """
     Layer that stacks multiple Fastfood transformations to project input 
     features into a higher dimensional space.
@@ -163,15 +165,16 @@ class Fastfood_Layer(nn.Module):
         output_dim (int): The desired output dimension of the layer.
         scale (float): A scaling factor for the output.
         learn_S (bool): If True, allows the scaling matrix S to be learnable.
-        learn_G_B (bool): If True, allows the binary and Gaussian scaling matrices to be learnable.
+        learn_G (bool): If True, allows the Gaussian scaling matrices to be learnable.
+        learn_B (bool): If True, allows the binary scaling matrices to be learnable.
         device (torch.device, optional): The device on which to allocate the parameters.
     """
-    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G_B=False, device=None):
-        super(Fastfood_Layer, self).__init__()
+    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None):
+        super(FastFood_Layer, self).__init__()
 
         # Create a list of Fastfood stack objects to reach the desired output dimension
         self.stack = nn.ModuleList(
-            [Fastfood_Stack_Object(input_dim=input_dim, scale=scale, learn_S=learn_S, learn_G_B=learn_G_B, device=device)
+            [Fastfood_Stack_Object(input_dim=input_dim, scale=scale, learn_S=learn_S, learn_G=learn_G, learn_B=learn_B, device=device)
              for _ in range(math.ceil(output_dim / input_dim))]
         )
         self.input_dim = input_dim    # Store input dimension
