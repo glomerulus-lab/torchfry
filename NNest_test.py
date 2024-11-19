@@ -1,12 +1,12 @@
 import torch
-from FastFood_Layer import FastFood_Layer
+from BIG_FastFood_Layer import Fastfood_Stack_Object
 import torch.nn as nn
 import torch.optim as optim
 
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fastfood = FastFood_Layer(input_dim=4*4, output_dim = 32, scale=5, learn_G=True, learn_S=True)
+        self.fastfood = Fastfood_Stack_Object(input_dim=4*4, output_dim=32, scale=5, learn_G=True, learn_S=True)
         self.output = nn.Linear(32, 10)
         
 
