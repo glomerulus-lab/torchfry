@@ -9,7 +9,7 @@ from sklearn_extra.kernel_approximation import Fastfood
 from FastFood_Layer import FastFood_Layer
 from RKS_Layer import RKS_Layer
 import torch
-from BIG_FastFood_Layer import Fastfood_Stack_Object
+from BIG_FastFood_Layer import Fastfood_Layer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #dimension
@@ -65,7 +65,7 @@ for dim in dimensions:
 #ff error
 ff_2_error = []
 for dim in dimensions:
-    fast_food_obj = Fastfood_Stack_Object(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+    fast_food_obj = Fastfood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
     phi = fast_food_obj.forward(x)
 
     ff_approx = (phi @ phi.T).cpu().detach().numpy()
