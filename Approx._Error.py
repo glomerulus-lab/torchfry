@@ -6,9 +6,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
-from FastFood_Layer import Fastfood_Layer
+from FastFood_Layer import FastFood_Layer
 from RKS_Layer import RKS_Layer
 import torch
+from BIG_FastFood_Layer import Fastfood_Stack_Object
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #dimension
@@ -44,7 +45,7 @@ x = torch.tensor(x, dtype=torch.float32, device=device)
 #ff error
 ff_error = []
 for dim in dimensions:
-    fast_food_obj = Fastfood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+    fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
     phi = fast_food_obj.forward(x)
 
     ff_approx = (phi @ phi.T).cpu().detach().numpy()
@@ -61,9 +62,20 @@ for dim in dimensions:
     difference = np.linalg.norm(exact_rbf-rks_approx, 'fro')
     rks_2_error.append(difference/num_data)
 
+#ff error
+ff_2_error = []
+for dim in dimensions:
+    fast_food_obj = Fastfood_Stack_Object(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+    phi = fast_food_obj.forward(x)
+
+    ff_approx = (phi @ phi.T).cpu().detach().numpy()
+    difference = np.linalg.norm(exact_rbf-ff_approx, 'fro')
+    ff_2_error.append(difference/num_data)
+
 
 plt.plot(dimensions,rks_error, label='RKS_Approx', marker='o')
 plt.plot(dimensions,ff_error, label='FF_Approx', marker='o')
+plt.plot(dimensions,ff_2_error, label='FF_Big_PP_Approx', marker='o')
 plt.plot(dimensions,rks_2_error, label='RKS_Layer_Approx', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Error')
