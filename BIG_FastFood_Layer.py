@@ -26,7 +26,7 @@ def hadamard_transform(u, normalize=False):
     return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
-class Fastfood_Stack_Object(nn.Module):
+class Fastfood_Layer(nn.Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
 
@@ -41,7 +41,7 @@ class Fastfood_Stack_Object(nn.Module):
             The output dimension to be projected into.
     """
     def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None):
-        super(Fastfood_Stack_Object, self).__init__()
+        super(Fastfood_Layer, self).__init__()
 
         # Initialize parameters for Fastfood function
         self.input_dim = input_dim
@@ -61,8 +61,8 @@ class Fastfood_Stack_Object(nn.Module):
             self.G = Parameter(torch.Tensor(self.output_dim)) 
             init.normal_(self.G, std=sqrt(1./self.output_dim))
         if self.learn_B:
-            self.B = Parameter(torch.Tensor(self.output_dim)) 
-            init.normal_(self.B, std=sqrt(1./self.output_dim))
+            self.B = Parameter(torch.Tensor(self.input_dim)) 
+            init.normal_(self.B, std=sqrt(1./self.input_dim))
         if self.learn_S: 
             self.S = Parameter(torch.Tensor(self.output_dim)) 
             init.normal_(self.S, std=sqrt(1./self.output_dim))
@@ -95,7 +95,7 @@ class Fastfood_Stack_Object(nn.Module):
             # Binary scaling matrix B sampled from {-1, 1}
             self.B = torch.tensor(
                 np.random.choice([-1.0, 1.0], 
-                    size=self.output_dim
+                    size=self.input_dim
                 ),
                 dtype=dtype, 
                 device=device, 
@@ -139,24 +139,28 @@ class Fastfood_Stack_Object(nn.Module):
         
         
         # pad x with 0's until it reaches output_dim length
-        padding_size = max(0, self.output_dim - x.size(-1))
-        x_padded = nn.functional.pad(x, (0, padding_size))
-        # Padded shape
-        x_shape = x_padded.shape
+        # padding_size = max(0, self.output_dim - x.size(-1))
+        # x_padded = nn.functional.pad(x, (0, padding_size))
+
+        # Number of times to repeat the Hadamard
+        repetition = int(self.output_dim / self.input_dim)
+        assert (repetition & (repetition -1 )) == 0, 'r must be a power of 2'
 
         # Reshape for Fastfood processing
-        x_run = x_padded.view(-1, self.output_dim)
+        x_run = x.view(-1, self.input_dim)
 
         # Fastfood multiplication steps
         Bx = x_run * self.B                       # Apply binary scaling
         HBx = hadamard_transform(Bx)              # Hadamard transform
+        HBx = HBx.repeat(1, repetition)           # Apply repetition
+        # np.savetxt('out.csv', HBx.view(-1, self.input_dim).numpy(), delimiter=',')
         PHBx = HBx[:, self.P]                     # Apply permutation
         GPHBx = PHBx * self.G                     # Apply Gaussian scaling
         HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
         SHGPHBx = HGPHBx * self.S                 # Final scaling
 
         # Normalize and recover original shape
-        Vx = ((1.0/(self.scale * sqrt(self.output_dim))) * SHGPHBx).view(x_shape)
+        Vx = ((1.0/(self.scale * sqrt(self.output_dim))) * SHGPHBx).view(1, self.output_dim)
 
         return self.phi(Vx)
     
