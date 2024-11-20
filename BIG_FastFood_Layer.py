@@ -26,7 +26,29 @@ def hadamard_transform(u, normalize=False):
     return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
-class Fastfood_Layer(nn.Module):
+def stack_hadamard_transforms(u, input_dim):
+    _, output_dim = u.shape
+    result = torch.zeros_like(u)
+    
+    for i in range(math.ceil(output_dim / input_dim)-1):
+        start = i * input_dim
+        end = (i+1) * input_dim
+        subset = u[start : end]
+        result[start : end] = hadamard_transform(subset)
+
+    # Last 
+    start = math.ceil(output_dim / input_dim)-1
+    end = -1
+    subset = u[start : end]
+    padding_size = max(0, input_dim - subset.size(-1))
+    subset = nn.functional.pad(subset, (0, padding_size))
+    print(subset.shape)
+    result[start : end] = hadamard_transform(subset)[:(len(result)-start)]
+
+    return result
+        
+
+class BIG_Fastfood_Layer(nn.Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
 
@@ -41,7 +63,7 @@ class Fastfood_Layer(nn.Module):
             The output dimension to be projected into.
     """
     def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None):
-        super(Fastfood_Layer, self).__init__()
+        super(BIG_Fastfood_Layer, self).__init__()
 
         # Initialize parameters for Fastfood function
         self.input_dim = input_dim
@@ -153,14 +175,13 @@ class Fastfood_Layer(nn.Module):
         Bx = x_run * self.B                       # Apply binary scaling
         HBx = hadamard_transform(Bx)              # Hadamard transform
         HBx = HBx.repeat(1, repetition)           # Apply repetition
-        # np.savetxt('out.csv', HBx.view(-1, self.input_dim).numpy(), delimiter=',')
         PHBx = HBx[:, self.P]                     # Apply permutation
         GPHBx = PHBx * self.G                     # Apply Gaussian scaling
-        HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
+        HGPHBx = stack_hadamard_transforms(GPHBx, self.input_dim)        # Another Hadamard transform
         SHGPHBx = HGPHBx * self.S                 # Final scaling
 
         # Normalize and recover original shape
-        Vx = ((1.0/(self.scale * sqrt(self.output_dim))) * SHGPHBx).view(1, self.output_dim)
+        Vx = ((1.0/(self.scale * sqrt(self.output_dim))) * SHGPHBx).view(-1, self.output_dim)
 
         return self.phi(Vx)
     

@@ -1,13 +1,13 @@
 import torch
-from BIG_FastFood_Layer import BIG_Fastfood_Layer
+from BIG_FastFood_Layer import Fastfood_Stack_Object
 import torch.nn as nn
 import torch.optim as optim
 
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fastfood = BIG_Fastfood_Layer(input_dim=2**3, output_dim=2**7, scale=5, learn_G=True, learn_S=True)
-        self.output = nn.Linear(2**7, 10)
+        self.fastfood = Fastfood_Stack_Object(input_dim=4*4, output_dim=32, scale=5, learn_G=True, learn_S=True)
+        self.output = nn.Linear(32, 10)
         
 
     def forward(self, x):
@@ -18,8 +18,8 @@ class NeuralNetwork(nn.Module):
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-n = 1
-X = torch.rand(n, 2**3, device=device)
+n = 1000
+X = torch.rand(n, 4*4, device=device)
 y = torch.randint(1, 10, (n,))
 model = NeuralNetwork()
 criterion = nn.CrossEntropyLoss()  # Or any other appropriate loss function
