@@ -9,13 +9,13 @@ from sklearn_extra.kernel_approximation import Fastfood
 from FastFood_Layer import FastFood_Layer
 from RKS_Layer import RKS_Layer
 import torch
-from BIG_FastFood_Layer import Fastfood_Layer
+from BIG_FastFood_Layer import BIG_Fastfood_Layer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #dimension
 d = 16
 #data points
-num_data = 4000 
+num_data = 2000 
 x = np.random.rand(num_data, d)
 
 #universal scale
@@ -65,7 +65,7 @@ for dim in dimensions:
 #ff error
 ff_2_error = []
 for dim in dimensions:
-    fast_food_obj = Fastfood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+    fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
     phi = fast_food_obj.forward(x)
 
     ff_approx = (phi @ phi.T).cpu().detach().numpy()
@@ -86,6 +86,7 @@ plt.show()
 plt.loglog(dimensions,rks_error, label='RKS_Approx', marker='o')
 plt.loglog(dimensions,ff_error, label='FF_Approx', marker='o')
 plt.plot(dimensions,rks_2_error, label='RKS_Layer_Approx', marker='o')
+plt.plot(dimensions, ff_2_error, label='FF_Big_PP_Approx', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Error')
 plt.title('Approximation Error vs. RBF Kernel')

@@ -17,7 +17,7 @@ def hadamard_transform(u, normalize=False):
     Returns:
         product: Tensor of shape (..., n)
     """
-    _, n = u.shape
+    n = u.shape[-1]
     m = int(np.log2(n))
     assert n == 1 << m, 'n must be a power of 2'
     x = u[..., np.newaxis]
@@ -26,7 +26,7 @@ def hadamard_transform(u, normalize=False):
     return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 
-class Fastfood_Layer(nn.Module):
+class BIG_Fastfood_Layer(nn.Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
 
@@ -41,9 +41,10 @@ class Fastfood_Layer(nn.Module):
             The output dimension to be projected into.
     """
     def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None):
-        super(Fastfood_Layer, self).__init__()
+        super(BIG_Fastfood_Layer, self).__init__()
 
         # Initialize parameters for Fastfood function
+        self.m = math.ceil(output_dim / input_dim)
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.learn_S = learn_S
@@ -58,13 +59,13 @@ class Fastfood_Layer(nn.Module):
         
         # Learnable Params
         if self.learn_G:
-            self.G = Parameter(torch.Tensor(self.output_dim)) 
+            self.G = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
             init.normal_(self.G, std=sqrt(1./self.output_dim))
         if self.learn_B:
-            self.B = Parameter(torch.Tensor(self.input_dim)) 
-            init.normal_(self.B, std=sqrt(1./self.input_dim))
+            self.B = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            init.normal_(self.B, std=sqrt(1./self.output_dim))
         if self.learn_S: 
-            self.S = Parameter(torch.Tensor(self.output_dim)) 
+            self.S = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
             init.normal_(self.S, std=sqrt(1./self.output_dim))
 
         # Sample required matrices
@@ -84,18 +85,17 @@ class Fastfood_Layer(nn.Module):
         # Device set 
         device = self.device
         
-        # Permutation matrix P 
-        self.P = torch.randperm(
-            self.output_dim, 
-            device=device,
-            requires_grad=False
-        )
+        # Permutation matrix P
+        self.P = torch.zeros((self.m, self.input_dim), device=device, requires_grad=False, dtype=torch.int)
+        for i in range(self.m):
+            p_row = torch.randperm(self.input_dim, device=device)
+            self.P[i, :] = p_row
 
         if not self.learn_B:
             # Binary scaling matrix B sampled from {-1, 1}
             self.B = torch.tensor(
                 np.random.choice([-1.0, 1.0], 
-                    size=self.input_dim
+                    size=(self.m, self.input_dim)
                 ),
                 dtype=dtype, 
                 device=device, 
@@ -104,7 +104,7 @@ class Fastfood_Layer(nn.Module):
         if not self.learn_G:
             # Gaussian scaling matrix G initialized to random values
             self.G = torch.zeros(
-                self.output_dim, 
+                (self.m, self.input_dim), 
                 dtype=dtype,
                 device=device,
                 requires_grad=False
@@ -121,7 +121,11 @@ class Fastfood_Layer(nn.Module):
                 dtype=dtype,
                 device=device,
                 requires_grad=False
-                ) / torch.norm(self.G)
+                ).reshape(self.m, self.input_dim) 
+            
+            row_norms = torch.norm(self.G, p=2, dim=1, keepdim=True)
+            self.S /= row_norms
+            
 
     def forward(self, x):
         """
@@ -138,30 +142,27 @@ class Fastfood_Layer(nn.Module):
         """ 
         
         
-        # pad x with 0's until it reaches output_dim length
-        # padding_size = max(0, self.output_dim - x.size(-1))
-        # x_padded = nn.functional.pad(x, (0, padding_size))
-
-        # Number of times to repeat the Hadamard
-        repetition = int(self.output_dim / self.input_dim)
-        assert (repetition & (repetition -1 )) == 0, 'r must be a power of 2'
 
         # Reshape for Fastfood processing
-        x_run = x.view(-1, self.input_dim)
+        x_run = x.view(-1, 1, self.input_dim)
 
-        # Fastfood multiplication steps
+        print(x_run.shape)
+        print(self.B.shape)
+        # Fastfood multiplication steps 
         Bx = x_run * self.B                       # Apply binary scaling
         HBx = hadamard_transform(Bx)              # Hadamard transform
-        HBx = HBx.repeat(1, repetition)           # Apply repetition
-        # np.savetxt('out.csv', HBx.view(-1, self.input_dim).numpy(), delimiter=',')
-        PHBx = HBx[:, self.P]                     # Apply permutation
-        GPHBx = PHBx * self.G                     # Apply Gaussian scaling
+        print(HBx.shape)
+        PHBx = HBx[..., torch.arange(self.m).unsqueeze(1), self.P]                        # Apply permutation
+        print(PHBx.shape)
+        GPHBx = PHBx * self.G                  # Apply Gaussian scaling
         HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
-        SHGPHBx = HGPHBx * self.S                 # Final scaling
-
+        print(HGPHBx.shape)
+        SHGPHBx = HGPHBx * self.S                # Final scaling
+        print(SHGPHBx.shape)
         # Normalize and recover original shape
-        Vx = ((1.0/(self.scale * sqrt(self.output_dim))) * SHGPHBx).view(1, self.output_dim)
-
+        Vx = ((1.0/(self.scale * sqrt(self.m))) * SHGPHBx).view(-1, self.output_dim)
+        print(Vx.shape)
+        
         return self.phi(Vx)
     
 

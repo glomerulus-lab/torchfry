@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
-from FastFood_BaseLine.structured_nets.pytorch.structure import fastfood
-from FastFood_Layer import Fastfood_Layer
+from FastFood_Layer import FastFood_Layer
 from RKS_Layer import RKS_Layer
+from BIG_FastFood_Layer import BIG_Fastfood_Layer
 import time  
 import torch
 import math
@@ -89,29 +89,10 @@ ff_time = ff_time[2:]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 x = torch.tensor(x, dtype=torch.float32, device=device)
 
-ff_2_time = []
-for n in dimensions:
-    nd_time = 0
-    for _ in range(math.ceil(n/x.shape[1])):
-        S = np.random.randn(x.shape[1])
-        G = np.random.randn(x.shape[1])
-        B = np.random.randn(x.shape[1])
-        P = np.random.permutation(x.shape[1])    
-        S = torch.tensor(S, dtype=torch.float, device=device)
-        G = torch.tensor(G, dtype=torch.float, device=device)
-        B = torch.tensor(B, dtype=torch.float, device=device)
-        P = torch.tensor(P, dtype=torch.long, device=device)
-        start = time.time()
-        phi = fastfood.fastfood_multiply(S,G,B,P,x)
-        end = time.time()
-        nd_time += (end-start)
-    ff_2_time.append(nd_time)
-ff_2_time = ff_2_time[2:]
-
 
 ff_3_time=[]
 for n in dimensions:
-    fast_food_obj = Fastfood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+    fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
     start = time.time()
     phi = fast_food_obj.forward(x)
@@ -132,15 +113,26 @@ for n in dimensions:
     ff_4_time.append(end-start)
 ff_4_time = ff_4_time[2:]
 
+ff_5_time=[]
+for n in dimensions:
+    fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+
+    start = time.time()
+    phi = fast_food_obj.forward(x)
+    end = time.time()
+
+    ff_5_time.append(end-start)
+ff_5_time = ff_5_time[2:]
+
 #set dimensions avoid graphing the warm-up passes
 dimensions = dimensions[2:]
 
 plt.plot(dimensions,rks_time, label='RKS_Time', marker='o')
 plt.plot(dimensions,rks_mine_time, label='RKS_Personal_Time', marker='o')
 plt.plot(dimensions,ff_time, label='FF_built-in_Time', marker='o')
-plt.plot(dimensions,ff_2_time, label='FF_structured-nets_Time (GPU)', marker='o')
 plt.plot(dimensions,ff_3_time, label='FastFood_Layer_Time (GPU)', marker='o')
 plt.plot(dimensions,ff_4_time, label='RKS_Layer_Time (GPU)', marker='o')
+plt.plot(dimensions,ff_5_time, label='Big_FF (GPU)', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Time (s)')
 plt.yscale('log')
