@@ -36,13 +36,12 @@ def stack_hadamard_transforms(u, input_dim):
         subset = u[start : end]
         result[start : end] = hadamard_transform(subset)
 
-    # Last 
+    # Special case. Controls when output_dim is not divisible by input_dim
     start = math.ceil(output_dim / input_dim)-1
     end = -1
     subset = u[start : end]
     padding_size = max(0, input_dim - subset.size(-1))
     subset = nn.functional.pad(subset, (0, padding_size))
-    print(subset.shape)
     result[start : end] = hadamard_transform(subset)[:(len(result)-start)]
 
     return result
