@@ -80,18 +80,18 @@ def BIG_ff_layer(x, exact, output_dims):
 
 if __name__ == '__main__':
 
-    error_names = np.array([
+    error_names = [
         "Exact RBF",
         "RKS Layer",
         "FF Layer",
         "BIG FF Layer",
-    ])
-    approx_errors = np.array([
+    ]
+    approx_errors = [
         exact_rbf_kernel,
         fastfood_GPU_layer,
         RKS_GPU_layer,
         BIG_ff_layer,
-    ])
+    ]
 
     # Dimensioning
     input_dim = 16
