@@ -15,7 +15,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #dimension
 d = 16
 #data points
-num_data = 4000 
+num_data = 2000 
 x = np.random.rand(num_data, d)
 
 #universal scale
@@ -83,10 +83,10 @@ plt.title('Approximation Error vs. RBF Kernel')
 plt.legend()
 plt.show()
 
-# plt.loglog(dimensions,rks_error, label='RKS_Approx', marker='o')
-# plt.loglog(dimensions,ff_error, label='FF_Approx', marker='o')
-plt.loglog(dimensions,BIG_ff_error, label='FF_Big_PP_Approx', marker='o')
-plt.loglog(dimensions,rks_2_error, label='RKS_Layer_Approx', marker='o')
+plt.loglog(dimensions,rks_error, label='RKS_Approx', marker='o')
+plt.loglog(dimensions,ff_error, label='FF_Approx', marker='o')
+plt.plot(dimensions,rks_2_error, label='RKS_Layer_Approx', marker='o')
+plt.plot(dimensions, ff_2_error, label='FF_Big_PP_Approx', marker='o')
 plt.xlabel('Dimension (n)')
 plt.ylabel('Error')
 plt.title('Approximation Error vs. RBF Kernel')
