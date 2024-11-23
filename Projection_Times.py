@@ -13,129 +13,164 @@ import torch
 import math
 
 
-#dimension
-d = 256
-#data points
-num_data = 10_000 
-x = np.random.rand(num_data, d)
 
-#universal scale
-scale = 20
+def exact_rbf_sampler(x, output_dims):
+    #rks error
+    times = []
+    for dim in output_dims:
+        #rks approx
+        rks = RBFSampler(gamma=(1/(2*scale**2)),n_components=dim)
+        rks.fit(x)
 
-#new n dimension for rks and ff
-#first two dimensions are for warm-up
-dimensions = [256,256,1024,2048,4096,8192,16384]
+        start = time.time()
+        rks.transform(x)
+        end = time.time()
 
-#rks error
-rks_time = []
-for dim in dimensions:
-    #rks approx
-    rks = RBFSampler(gamma=(1/(2*scale**2)),n_components=dim)
-    rks.fit(x)
-    start = time.time()
-    rks.transform(x)
-
-    end = time.time()
-    rks_time.append(end-start)
-rks_time = rks_time[2:]
+        times.append(end-start)
+    # warm up
+    return times
 
 
-rks_mine_time = []
-#rks error
-for dim in dimensions:
-    #rks approx
-    rks = projections.rks(dim, scale)
-    rks.fit(x)
-    start = time.time()
-    rks.transform(x)
+def other_RKS(x, output_dims):
+    times = []
+    #rks error
+    for dim in output_dims:
+        #rks approx
+        rks = projections.rks(dim, scale)
+        rks.fit(x)
 
-    end = time.time()
-    rks_mine_time.append(end-start)
-rks_mine_time = rks_mine_time[2:]
+        start = time.time()
+        rks.transform(x)
+        end = time.time()
 
-#ff error
-ff_time = []
-for dim in dimensions:
-    trade = 'accuracy'
-    #ff approx
-    ff = Fastfood(sigma=scale, n_components=dim, tradeoff_mem_accuracy=trade)
-    ff.fit(x)
-    ff.transform(x)
-
-    start = time.time()
-    X_padded = ff._pad_with_zeros(x)
-
-    HGPHBX = ff._apply_approximate_gaussian_matrix(
-        ff._B, ff._G, ff._P, X_padded
-    )
-
-    VX = ff._scale_transformed_data(ff._S, HGPHBX)
-    VX = torch.tensor(VX)
-
-    #memory
-    if trade == 'mem':
-        VX = torch.cos(VX + ff._U)
-        output = VX * np.sqrt(2.0 / VX.shape[1])
-
-    #accuracy: non non linearity
-    if trade == 'accuracy':
-        (1 / np.sqrt(VX.shape[1])) * torch.hstack([torch.cos(VX), torch.sin(VX)])
-
-    end = time.time()
-    ff_time.append(end-start)
-ff_time = ff_time[2:]
+        times.append(end-start)
+    # warm up
+    return times
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-x = torch.tensor(x, dtype=torch.float32, device=device)
+def sklearn_ff(x, output_dims):
+    #ff error
+    times = []
+    for dim in output_dims:
+        trade = 'accuracy'
+        #ff approx
+        ff = Fastfood(sigma=scale, n_components=dim, tradeoff_mem_accuracy=trade)
+        ff.fit(x)
+        ff.transform(x)
+
+        start = time.time()
+        X_padded = ff._pad_with_zeros(x)
+        HGPHBX = ff._apply_approximate_gaussian_matrix(
+            ff._B, ff._G, ff._P, X_padded
+        )
+        VX = ff._scale_transformed_data(ff._S, HGPHBX)
+        VX = torch.tensor(VX)
+
+        #memory
+        if trade == 'mem':
+            VX = torch.cos(VX + ff._U)
+            output = VX * np.sqrt(2.0 / VX.shape[1])
+
+        #accuracy: non non linearity
+        if trade == 'accuracy':
+            (1 / np.sqrt(VX.shape[1])) * torch.hstack([torch.cos(VX), torch.sin(VX)])
+
+        end = time.time()
+        times.append(end-start)
+    # warm up
+    return times
 
 
-ff_3_time=[]
-for n in dimensions:
-    fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+def fastfood_GPU_layer(x, output_dims):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    x = torch.tensor(x, dtype=torch.float32, device=device)
 
-    start = time.time()
-    phi = fast_food_obj.forward(x)
-    end = time.time()
+    times=[]
+    for n in output_dims:
+        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
-    ff_3_time.append(end-start)
-ff_3_time = ff_3_time[2:]
+        start = time.time()
+        phi = fast_food_obj.forward(x)
+        end = time.time()
+
+        times.append(end-start)
+    # warm up
+    return times
 
 
-ff_4_time=[]
-for n in dimensions:
-    rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+def RKS_GPU_layer(x, output_dims):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    x = torch.tensor(x, dtype=torch.float32, device=device)
 
-    start = time.time()
-    phi = rks_obj.forward(x)
-    end = time.time()
+    times=[]
+    for n in output_dims:
+        rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
-    ff_4_time.append(end-start)
-ff_4_time = ff_4_time[2:]
+        start = time.time()
+        phi = rks_obj.forward(x)
+        end = time.time()
 
-ff_5_time=[]
-for n in dimensions:
-    fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+        times.append(end-start)
+    # warm up
+    return times
 
-    start = time.time()
-    phi = fast_food_obj.forward(x)
-    end = time.time()
 
-    ff_5_time.append(end-start)
-ff_5_time = ff_5_time[2:]
+def BIG_ff_layer(x, output_dims):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    x = torch.tensor(x, dtype=torch.float32, device=device)
 
-#set dimensions avoid graphing the warm-up passes
-dimensions = dimensions[2:]
+    times=[]
+    for n in output_dims:
+        fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
-plt.plot(dimensions,rks_time, label='RKS_Time', marker='o')
-plt.plot(dimensions,rks_mine_time, label='RKS_Personal_Time', marker='o')
-plt.plot(dimensions,ff_time, label='FF_built-in_Time', marker='o')
-plt.plot(dimensions,ff_3_time, label='FastFood_Layer_Time (GPU)', marker='o')
-plt.plot(dimensions,ff_4_time, label='RKS_Layer_Time (GPU)', marker='o')
-plt.plot(dimensions,ff_5_time, label='Big_FF (GPU)', marker='o')
-plt.xlabel('Dimension (n)')
-plt.ylabel('Time (s)')
-plt.yscale('log')
-plt.title('Projection Times')
-plt.legend(loc='best')
-plt.show()
+        start = time.time()
+        phi = fast_food_obj.forward(x)
+        end = time.time()
+
+        times.append(end-start)
+    # warm up
+    return times
+
+
+if __name__ == '__main__':
+    
+    proj_names = np.array([
+        "Exact RBF Kernel (CPU)",
+        "Random Kitchen Sink (CPU)",
+        "Sklearn Fastfood (CPU)",
+        "Classic Fastfood (GPU)",
+        "Random Kitchen Sink (GPU)",
+        "BIG Fastfood (GPU)"
+    ])
+    projection_methods = np.array([
+        exact_rbf_sampler,
+        other_RKS,
+        sklearn_ff,
+        fastfood_GPU_layer,
+        RKS_GPU_layer,
+        BIG_ff_layer,
+    ])
+
+    # Dimensioning
+    input_dim = 256
+    output_dims = [256,256,512,1024,2048,4096,]#8192,16384]
+    num_data = 10_000 
+
+    # Data
+    x = np.random.rand(num_data, input_dim)
+    
+    # Universal Scale
+    scale = 20
+
+    for name, proj_method in zip(proj_names, projection_methods):
+        proj_time = proj_method(x, output_dims)
+        plt.plot(output_dims[2:], proj_time[2:], label=name, marker='o')
+
+    plt.xlabel('Dimension')
+    plt.xticks(output_dims[2:], output_dims[2:], rotation=90)
+    plt.ylabel('Time (seconds)')
+    plt.yscale('log')
+    plt.title('Projection Times')
+    plt.tight_layout()
+    plt.legend(loc='best')
+    plt.show()
