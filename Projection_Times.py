@@ -134,22 +134,22 @@ def BIG_ff_layer(x, output_dims):
 
 if __name__ == '__main__':
     
-    proj_names = np.array([
+    proj_names = [
         "Exact RBF Kernel (CPU)",
         "Random Kitchen Sink (CPU)",
         "Sklearn Fastfood (CPU)",
         "Classic Fastfood (GPU)",
         "Random Kitchen Sink (GPU)",
         "BIG Fastfood (GPU)"
-    ])
-    projection_methods = np.array([
+    ]
+    projection_methods = [
         exact_rbf_sampler,
         other_RKS,
         sklearn_ff,
         fastfood_GPU_layer,
         RKS_GPU_layer,
         BIG_ff_layer,
-    ])
+    ]
 
     # Dimensioning
     input_dim = 256
