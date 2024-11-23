@@ -60,13 +60,13 @@ class BIG_Fastfood_Layer(nn.Module):
         # Learnable Params
         if self.learn_G:
             self.G = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
-            init.normal_(self.G, std=sqrt(1./self.output_dim))
+            init.normal_(self.G, std=sqrt(1/self.input_dim))
         if self.learn_B:
             self.B = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
-            init.normal_(self.B, std=sqrt(1./self.output_dim))
+            init.normal_(self.B, std=sqrt(1/self.input_dim))
         if self.learn_S: 
             self.S = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
-            init.normal_(self.S, std=sqrt(1./self.output_dim))
+            init.normal_(self.S, std=sqrt(1/self.input_dim))
 
         # Sample required matrices
         self.new_feature_map(torch.float32)
@@ -88,8 +88,7 @@ class BIG_Fastfood_Layer(nn.Module):
         # Permutation matrix P
         self.P = torch.zeros((self.m, self.input_dim), device=device, requires_grad=False, dtype=torch.int)
         for i in range(self.m):
-            p_row = torch.randperm(self.input_dim, device=device)
-            self.P[i, :] = p_row
+            self.P[i, :] = torch.randperm(self.input_dim, device=device)
 
         if not self.learn_B:
             # Binary scaling matrix B sampled from {-1, 1}
@@ -101,29 +100,30 @@ class BIG_Fastfood_Layer(nn.Module):
                 device=device, 
                 requires_grad=False
             )
+            
         if not self.learn_G:
             # Gaussian scaling matrix G initialized to random values
-            self.G = torch.zeros(
+            self.G = torch.randn(
                 (self.m, self.input_dim), 
                 dtype=dtype,
                 device=device,
                 requires_grad=False
             )
-            self.G.normal_()
 
         if not self.learn_S: 
             # Scaling matrix S sampled from a chi-squared distribution
             self.S = torch.tensor(
                 chi.rvs( 
-                    df=self.output_dim, 
-                    size=self.output_dim
+                    df=self.input_dim, 
+                    size=(self.m, self.input_dim)
                 ), 
                 dtype=dtype,
                 device=device,
                 requires_grad=False
-                ).reshape(self.m, self.input_dim) 
+                )
             
-            row_norms = torch.norm(self.G, p=2, dim=1, keepdim=True)
+            # Norm each row of S, with norm of corresponding row of G
+            row_norms = torch.norm(self.G, dim=1, keepdim=True)
             self.S /= row_norms
             
 
@@ -146,24 +146,22 @@ class BIG_Fastfood_Layer(nn.Module):
         # Reshape for Fastfood processing
         x_run = x.view(-1, 1, self.input_dim)
 
-        print(x_run.shape)
-        print(self.B.shape)
         # Fastfood multiplication steps 
-        Bx = x_run * self.B                       # Apply binary scaling
-        HBx = hadamard_transform(Bx)              # Hadamard transform
-        print(HBx.shape)
-        PHBx = HBx[..., torch.arange(self.m).unsqueeze(1), self.P]                        # Apply permutation
-        print(PHBx.shape)
-        GPHBx = PHBx * self.G                  # Apply Gaussian scaling
-        HGPHBx = hadamard_transform(GPHBx)        # Another Hadamard transform
-        print(HGPHBx.shape)
-        SHGPHBx = HGPHBx * self.S                # Final scaling
-        print(SHGPHBx.shape)
+        Bx = x_run * self.B                                               # Apply binary scaling
+        HBx = hadamard_transform(Bx)                                      # Hadamard transform
+        PHBx = HBx[..., torch.arange(self.m).unsqueeze(1), self.P]        # Random permute each row indep.
+        GPHBx = PHBx * self.G                                             # Apply Gaussian scaling
+        HGPHBx = hadamard_transform(GPHBx)                                # Hadamard transform
+        SHGPHBx = HGPHBx * self.S                                         # Final scaling
+
+
         # Normalize and recover original shape
-        Vx = ((1.0/(self.scale * sqrt(self.m))) * SHGPHBx).view(-1, self.output_dim)
-        print(Vx.shape)
-        
-        return self.phi(Vx)
+        Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx.view(-1, self.output_dim))
+
+        # Trim for desired outut
+        trimmed = Vx[..., :self.output_dim]        
+
+        return self.phi(trimmed)
     
 
     def phi(self, x):
@@ -181,4 +179,4 @@ class BIG_Fastfood_Layer(nn.Module):
         x = torch.cos(x + U)
 
         # Normalization
-        return x * math.sqrt(2.0 / self.output_dim)
+        return (x * math.sqrt(2.0 / self.output_dim))

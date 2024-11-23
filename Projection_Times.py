@@ -90,7 +90,7 @@ def fastfood_GPU_layer(x, output_dims):
         fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
         start = time.time()
-        phi = fast_food_obj.forward(x)
+        fast_food_obj.forward(x)
         end = time.time()
 
         times.append(end-start)
@@ -107,7 +107,7 @@ def RKS_GPU_layer(x, output_dims):
         rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
         start = time.time()
-        phi = rks_obj.forward(x)
+        rks_obj.forward(x)
         end = time.time()
 
         times.append(end-start)
@@ -124,7 +124,7 @@ def BIG_ff_layer(x, output_dims):
         fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
         start = time.time()
-        phi = fast_food_obj.forward(x)
+        fast_food_obj.forward(x)
         end = time.time()
 
         times.append(end-start)
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
     # Dimensioning
     input_dim = 256
-    output_dims = [256,256,512,1024,2048,4096,]#8192,16384]
+    output_dims = [256,256,512,1024,2048,4096,8192,16384]
     num_data = 10_000 
 
     # Data
