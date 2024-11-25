@@ -152,10 +152,9 @@ if __name__ == '__main__':
     ]
 
     # Dimensioning
-    input_dim = 256
-    output_dims = [256,256,512,1024,2048,4096,8192,16384]
-    num_data = 10_000 
-
+    input_dim = 128
+    output_dims = [512,512,512,1024,2048,4096,8192,16384]
+    num_data = 8_192
     # Data
     x = np.random.rand(num_data, input_dim)
     
