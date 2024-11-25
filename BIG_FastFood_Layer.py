@@ -86,7 +86,7 @@ class BIG_Fastfood_Layer(nn.Module):
         device = self.device
         
         # Permutation matrix P
-        self.P = torch.zeros((self.m, self.input_dim), device=device, requires_grad=False, dtype=torch.int)
+        self.P = torch.zeros((self.m, self.input_dim), device=device, requires_grad=False, dtype=torch.int64)
         for i in range(self.m):
             self.P[i, :] = torch.randperm(self.input_dim, device=device)
 
@@ -140,28 +140,22 @@ class BIG_Fastfood_Layer(nn.Module):
         -------
         Tensor: The transformed tensor after applying the Fastfood feature map.
         """ 
-        
-        
-
-        # Reshape for Fastfood processing
         x_run = x.view(-1, 1, self.input_dim)
 
         # Fastfood multiplication steps 
-        Bx = x_run * self.B                                               # Apply binary scaling
-        HBx = hadamard_transform(Bx)                                      # Hadamard transform
-        PHBx = HBx[..., torch.arange(self.m).unsqueeze(1), self.P]        # Random permute each row indep.
-        GPHBx = PHBx * self.G                                             # Apply Gaussian scaling
-        HGPHBx = hadamard_transform(GPHBx)                                # Hadamard transform
-        SHGPHBx = HGPHBx * self.S                                         # Final scaling
+        Bx = x_run * self.B                                         # Apply binary scaling
+        HBx = hadamard_transform(Bx)                                # Hadamard transform
+        index = self.P.unsqueeze(0).expand(HBx.size(0), -1, -1)
+        PHBx = HBx.gather(-1, index)                                # Use gather to apply the permutation along the 3rd dimension (input_dim)
+        GPHBx = PHBx * self.G                                       # Apply Gaussian scaling
+        HGPHBx = hadamard_transform(GPHBx)                          # Hadamard transform
+        SHGPHBx = HGPHBx * self.S                                   # Final scaling
+        Vx = ((1.0 / (self.scale * sqrt(self.input_dim))) * SHGPHBx.view(-1, self.m * self.input_dim))
 
+        trimmed = Vx[..., :self.output_dim]                         # Trim for desired output
+        result = self.phi(trimmed)
 
-        # Normalize and recover original shape
-        Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx.view(-1, self.m*self.input_dim))
-
-        # Trim for desired outut
-        trimmed = Vx[..., :self.output_dim]     
-
-        return self.phi(trimmed)
+        return result
     
 
     def phi(self, x):
