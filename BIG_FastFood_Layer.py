@@ -156,10 +156,10 @@ class BIG_Fastfood_Layer(nn.Module):
 
 
         # Normalize and recover original shape
-        Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx.view(-1, self.output_dim))
+        Vx = ((1.0/(self.scale * sqrt(self.input_dim))) * SHGPHBx.view(-1, self.m*self.input_dim))
 
         # Trim for desired outut
-        trimmed = Vx[..., :self.output_dim]        
+        trimmed = Vx[..., :self.output_dim]     
 
         return self.phi(trimmed)
     
