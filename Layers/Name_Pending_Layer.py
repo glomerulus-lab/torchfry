@@ -1,10 +1,10 @@
 import torch
 import math
+import time
 import numpy as np 
 from torch.nn import init
 import torch.nn as nn
 from math import sqrt
-from torch.nn.parameter import Parameter
 from scipy.stats import chi
 
 def hadamard_transform(u, normalize=False):
@@ -39,8 +39,20 @@ class BIG_Fastfood_Layer(nn.Module):
             The input data feature dimension.
         output_dim: int
             The output dimension to be projected into.
+        scale: float
+            Scale factor for normalization
+        learn_S: boolean
+            If S matrix is to be learnable
+        learn_G: boolean
+            If G matrix is to be learnable
+        learn_B: boolean
+            If B matrix is to be learnable
+        device: string
+            Device for operations
+        nonlinearity: boolean
+            If internal nonlinearity is used, or defered
     """
-    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None):
+    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True):
         super(BIG_Fastfood_Layer, self).__init__()
 
         # Initialize parameters for Fastfood function
@@ -52,6 +64,7 @@ class BIG_Fastfood_Layer(nn.Module):
         self.learn_B = learn_B
         self.device = device
         self.scale = scale
+        self.nonlinearity = nonlinearity
         self.P = None
         self.B = None 
         self.G = None
@@ -59,13 +72,13 @@ class BIG_Fastfood_Layer(nn.Module):
         
         # Learnable Params
         if self.learn_G:
-            self.G = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            self.G = nn.Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
             init.normal_(self.G, std=sqrt(1/self.input_dim))
         if self.learn_B:
-            self.B = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            self.B = nn.Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
             init.normal_(self.B, std=sqrt(1/self.input_dim))
         if self.learn_S: 
-            self.S = Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            self.S = nn.Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
             init.normal_(self.S, std=sqrt(1/self.input_dim))
 
         # Sample required matrices
@@ -139,22 +152,20 @@ class BIG_Fastfood_Layer(nn.Module):
         Returns:
         -------
         Tensor: The transformed tensor after applying the Fastfood feature map.
-        """ 
-        x_run = x.view(-1, 1, self.input_dim)
-
-        # Fastfood multiplication steps 
-        Bx = x_run * self.B                                         # Apply binary scaling
-        HBx = hadamard_transform(Bx)                                # Hadamard transform
-        index = self.P.unsqueeze(0).expand(HBx.size(0), -1, -1)
-        PHBx = HBx.gather(-1, index)                                # Use gather to apply the permutation along the 3rd dimension (input_dim)
-        GPHBx = PHBx * self.G                                       # Apply Gaussian scaling
-        HGPHBx = hadamard_transform(GPHBx)                          # Hadamard transform
-        SHGPHBx = HGPHBx * self.S                                   # Final scaling
-        Vx = ((1.0 / (self.scale * sqrt(self.input_dim))) * SHGPHBx.view(-1, self.m * self.input_dim))
-
-        trimmed = Vx[..., :self.output_dim]                         # Trim for desired output
-        result = self.phi(trimmed)
-
+        """
+        x_run = x.view(-1, 1, self.input_dim)                            # Reshape to [x, 1, input_dim]
+        Bx = x_run * self.B                                              # Apply binary scaling, broadcast over 2nd dim to [x, m, input_dim]
+        HBx = hadamard_transform(Bx)                                     # Hadamard transform over last dim
+        index = self.P.unsqueeze(0).expand(HBx.size(0), -1, -1)          # Add additional dim to Permute, and match size to HBx
+        PHBx = HBx.gather(-1, index)                                     # Permute HBx using P on final dim of HBx
+        GPHBx = PHBx * self.G                                            # Apply Gaussian scaling, element wise mult, no broadcast
+        HGPHBx = hadamard_transform(GPHBx)                               # Hadamard transform over last dim
+        SHGPHBx = HGPHBx * self.S                                        # Final scaling, element wise mult, no broadcast
+        norm_factor = (1.0 / (self.scale * sqrt(self.input_dim)))        # Norm factor based on input_dim
+        Vx = (norm_factor * SHGPHBx.view(-1, self.m * self.input_dim))   # Norm factor applied, reshape into [x, m * input_dim]
+        result = Vx[..., :self.output_dim]                               # Trim to exact [x, m * input_dim]
+        if self.nonlinearity:                                            # If desired internal nonlinearity
+            result = self.phi(result)                                    # Nonlinearity
         return result
     
 
@@ -166,11 +177,19 @@ class BIG_Fastfood_Layer(nn.Module):
         ----------
             x (tensor): Input tensor that will be transformed.
         """
+
         # Create a uniform distribution between 0 and 2 * pi
         U = 2 * torch.pi * torch.rand(self.output_dim, device=self.device)
 
+        # Add the uniform distribution to x
+        # Out of place: x = x + u
+        x.add_(U)
+
         # Apply the cosine function to x, adding U for randomness
-        x = torch.cos(x + U)
+        torch.cos_(x)
 
         # Normalization
-        return (x * math.sqrt(2.0 / self.output_dim))
+        # Out of place: x = x * math.sqrt(2.0 / self.output_dim)
+        x.mul_(math.sqrt(2.0 / self.output_dim))
+
+        return x
