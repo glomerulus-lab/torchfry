@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
-from FastFood_Layer import FastFood_Layer
-from RKS_Layer import RKS_Layer
-from BIG_FastFood_Layer import BIG_Fastfood_Layer
+from Layers.FastFood_Layer import FastFood_Layer
+from Layers.RKS_Layer import RKS_Layer
+from Layers.Name_Pending_Layer import BIG_Fastfood_Layer
 import time  
 import torch
 import math
