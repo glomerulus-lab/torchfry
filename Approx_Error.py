@@ -88,13 +88,13 @@ if __name__ == '__main__':
     ]
     approx_errors = [
         exact_rbf_kernel,
-        fastfood_GPU_layer,
+        # fastfood_GPU_layer,
         RKS_GPU_layer,
         BIG_ff_layer,
     ]
 
     # Dimensioning
-    input_dim = 16
+    input_dim = 10
     output_dims = [16,32,64,128,256,512,1024,2048,4096,8192]
     num_data = 2000 
     x = np.random.rand(num_data, input_dim)
