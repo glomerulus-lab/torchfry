@@ -72,13 +72,13 @@ class BIG_Fastfood_Layer(nn.Module):
         
         # Learnable Params
         if self.learn_G:
-            self.G = nn.Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            self.G = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
             init.normal_(self.G, std=sqrt(1/self.input_dim))
         if self.learn_B:
-            self.B = nn.Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            self.B = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
             init.normal_(self.B, std=sqrt(1/self.input_dim))
         if self.learn_S: 
-            self.S = nn.Parameter(torch.Tensor(self.m, self.input_dim, device=device)) 
+            self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
             init.normal_(self.S, std=sqrt(1/self.input_dim))
 
         # Sample required matrices
