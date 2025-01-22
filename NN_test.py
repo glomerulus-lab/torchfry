@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 import time
+import math
 from Layers.RKS_Layer import RKS_Layer
 from Layers.Name_Pending_Layer import BIG_Fastfood_Layer as Big_FastFood
 
@@ -33,8 +34,32 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_epochs = 20
 scale = 10
 
+def next_power_of_two(x):
+    return 2**math.ceil(math.log2(x))
+
+class PadToNextPowerOfTwo(object):
+    def __init__(self):
+        pass
+    
+    def __call__(self, image):
+        # Get the original size
+        width, height = image.size
+        
+        # Find the next power of two for both dimensions
+        new_width = next_power_of_two(width)
+        new_height = next_power_of_two(height)
+        
+        # Calculate the padding for both sides
+        pad_left = (new_width - width) // 2
+        pad_top = (new_height - height) // 2
+        pad_right = new_width - width - pad_left
+        pad_bottom = new_height - height - pad_top
+        
+        # Apply padding
+        return transforms.functional.pad(image, (pad_left, pad_top, pad_right, pad_bottom), fill=0)
+
 # Loader
-transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+transform = transforms.Compose([PadToNextPowerOfTwo(), transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 # Import data
 trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
@@ -43,17 +68,17 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True
 testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False)
 
 # Projections
-rks = RKS_Layer(input_dim=784, output_dim=1024, scale=scale, device=device)
-rks_learn = RKS_Layer(input_dim=784, output_dim=1024, scale=scale, learn_G=True, device=device)
-ff = Big_FastFood(input_dim=784, output_dim=1024, scale=scale, device=device)
-ff_learn = Big_FastFood(input_dim=784, output_dim=1024, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True)
-ff_no_linear = Big_FastFood(input_dim=784, output_dim=1024, scale=scale, device=device, nonlinearity=False)
-projs = [rks, rks_learn, ff, ff_learn, ff_no_linear]
+# rks = RKS_Layer(input_dim=784, output_dim=1024, scale=scale, device=device)
+# rks_learn = RKS_Layer(input_dim=784, output_dim=1024, scale=scale, learn_G=True, device=device)
+ff = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device)
+ff_learn = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True)
+ff_no_linear = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False)
+projs = [ff, ff_learn, ff_no_linear]
 
 # For each projection
 for proj in projs:
     start = time.time()
-    NN = NeuralNetwork(projection=proj, proj_dim=1024, output_dim=10).to(device)
+    NN = NeuralNetwork(projection=proj, proj_dim=2048, output_dim=10).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(NN.parameters(), lr=0.001)
 
