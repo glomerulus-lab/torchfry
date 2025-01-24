@@ -19,7 +19,7 @@ class RKS_Layer(nn.Module):
         learn_G (bool): If True, allows the Random Gaussian Matrix G to be learnable.
         device (torch.device, optional): The device on which to allocate the parameters.
     """
-    def __init__(self, input_dim, output_dim, scale, learn_G=False, device=None):
+    def __init__(self, input_dim, output_dim, scale, learn_G=False, device=None, nonlinearity=True):
         super(RKS_Layer, self).__init__()
 
         self.input_dim = input_dim       # Data input dimension
@@ -27,6 +27,7 @@ class RKS_Layer(nn.Module):
         self.learn_G = learn_G           # Param for learning weight
         self.output_dim = output_dim     # Projection dimension
         self.device = device             # GPU or CPU   
+        self.nonlinearity = nonlinearity # Desired internal nonlinearity
 
         # If Gaussian is learnable
         if self.learn_G:
@@ -37,8 +38,32 @@ class RKS_Layer(nn.Module):
             # Use a fixed random Gaussian matrix for G
             self.G = (1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device, requires_grad=False)
 
-        # Non linearity offset 
-        self.offset = 2 * torch.pi * torch.rand(output_dim, device=self.device)
+    def phi(self, x):
+        """
+        Apply nonlinearity to output.
+
+        Arguments:
+        ----------
+            x (tensor): Input tensor that will be transformed.
+        """
+
+        # Create a uniform distribution between 0 and 2 * pi
+        U = 2 * torch.pi * torch.rand(self.output_dim, device=self.device)
+
+        # Add the uniform distribution to x
+        # Out of place: x = x + u
+        x.add_(U)
+
+        # Apply the cosine function to x, adding U for randomness
+        torch.cos_(x)
+
+        # Normalization
+        # Out of place: x = x * math.sqrt(2.0 / self.output_dim)
+        x.mul_(math.sqrt(2.0 / self.output_dim))
+
+        return x
+
+    
 
     def forward(self, x):
         """
@@ -57,7 +82,8 @@ class RKS_Layer(nn.Module):
         """
 
         # Project and add offset
-        projected_data = x @ self.G + self.offset
+        result = x @ self.G
 
-        # Non Linearity with scaling factor
-        return torch.sqrt(torch.tensor(2.0 / self.output_dim, device=self.device)) * torch.cos(projected_data)
+        if self.nonlinearity:            # If desired internal nonlinearity
+            result = self.phi(result)    # Nonlinearity
+        return result

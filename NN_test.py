@@ -31,7 +31,7 @@ class NeuralNetwork(nn.Module):
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Params
-num_epochs = 20
+num_epochs = 5
 scale = 10
 
 def next_power_of_two(x):
@@ -68,17 +68,18 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True
 testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False)
 
 # Projections
-# rks = RKS_Layer(input_dim=784, output_dim=1024, scale=scale, device=device)
-# rks_learn = RKS_Layer(input_dim=784, output_dim=1024, scale=scale, learn_G=True, device=device)
-ff = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device)
-ff_learn = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True)
-ff_no_linear = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False)
-projs = [ff, ff_learn, ff_no_linear]
-
+projs = [
+    RKS_Layer(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    RKS_Layer(input_dim=1024, output_dim=2048, scale=scale, learn_G=True, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True, nonlinearity=False),
+]
+name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_Learnable"]
 # For each projection
-for proj in projs:
+for i in range(len(projs)):
+    print(name[i])
     start = time.time()
-    NN = NeuralNetwork(projection=proj, proj_dim=2048, output_dim=10).to(device)
+    NN = NeuralNetwork(projection=projs[i], proj_dim=2048, output_dim=10, linearity=True).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(NN.parameters(), lr=0.001)
 
