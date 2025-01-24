@@ -94,7 +94,7 @@ if __name__ == '__main__':
     ]
 
     # Dimensioning
-    input_dim = 10
+    input_dim = 8
     output_dims = [16,32,64,128,256,512,1024,2048,4096,8192]
     num_data = 2000 
     x = np.random.rand(num_data, input_dim)

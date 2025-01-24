@@ -16,20 +16,14 @@ def hadamard_transform(u, normalize=False):
     Returns:
         product: Tensor of shape (..., n)
     """
-    og = u.shape[-1]
     n = u.shape[-1]
-    if (n & (n - 1)) != 0:  # Check if n is not a power of 2
-        next_n = 1 << (n.bit_length())  # Get the next power of 2
-        u = nn.functional.pad(u, (0, next_n - n))  # Pad with zeros to next power of 2
-        n = next_n
-
     m = int(np.log2(n))
     assert n == 1 << m, 'n must be a power of 2'
     x = u[..., np.newaxis]
     for d in range(m)[::-1]:
         x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
 
-    return x[...,:og].squeeze(-2) / 2**(m / 2) if normalize else x[...,:og].squeeze(-2)
+    return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 class BIG_Fastfood_Layer(nn.Module):
     """
