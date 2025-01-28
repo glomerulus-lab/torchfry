@@ -1,12 +1,23 @@
 import pandas as pd
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from sklearn.preprocessing import OneHotEncoder
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available
 
 # TODO: I couldn't find the CPU or Forest datasets from the Fastfood paper.
+
+def train_test_split(x, y):
+    '''
+    Split data into a train (90%) and test (10%) group
+    '''
+    assert x.shape[0] == y.shape[0]
+    split = int(0.9 * x.shape[0])
+    random_idx = [torch.randperm(x.shape[0])]
+    
+    return x[:split], y[:split], x[split:], y[split:]
 
 def load_iris():
     '''
@@ -68,15 +79,15 @@ def load_parkinsons():
     target2 = data['motor_UPDRS']
 
     x = features.to_numpy().astype(float)
-    x = torch.from_numpy(x).to(device)
+    x = torch.from_numpy(x).to(device).to(torch.float)
 
     y1 = target1.to_numpy().astype(float)
-    y1 = torch.from_numpy(y1).to(device)
+    y1 = torch.from_numpy(y1).to(device).to(torch.float)
 
     y2 = target2.to_numpy().astype(float)
-    y2 = torch.from_numpy(y2).to(device)
+    y2 = torch.from_numpy(y2).to(device).to(torch.float)
     
-    return x, y1
+    return train_test_split(x, y1)
 
 
 def load_red_wine_quality():
@@ -85,10 +96,18 @@ def load_red_wine_quality():
     regression features -- 11 columns of data
     categorical target -- quality of wine on scale 0-10. Observed domain = [3, 4, 5, 6, 7, 8]
     '''
-    data = pd.read_csv("./data/Wine_Quality/winequality-red.csv", delimiter=";").to_numpy()
-    x = torch.from_numpy(data[:,:-1]).to(device)
-    y = torch.from_numpy(data[:,-1]).to(device)
-    return x, y
+    data = pd.read_csv("./data/Wine_Quality/winequality-red.csv", delimiter=";").to_numpy().astype(float)
+    x = torch.from_numpy(data[:,:-1]).to(device).to(torch.float32)
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
+
+    y = torch.from_numpy(data[:,-1]).to(device).to(torch.int64)
+    # move targets onto range (0, num_classes)
+    _, y = np.unique(data[:,-1], return_inverse=True)
+    y = torch.from_numpy(y).to(device)
+
+    return train_test_split(x, y)
 
 
 def load_white_wine_quality():
@@ -98,9 +117,17 @@ def load_white_wine_quality():
     categorical target -- quality of wine on scale 0-10. Observed domain = [3, 4, 5, 6, 7, 8, 9]
     '''
     data = pd.read_csv("./data/Wine_Quality/winequality-white.csv", delimiter=";").to_numpy()
-    x = torch.from_numpy(data[:,:-1]).to(device)
-    y = torch.from_numpy(data[:,-1]).to(device)
-    return x, y
+    x = torch.from_numpy(data[:,:-1]).to(device).to(torch.float32)
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
+
+    y = torch.from_numpy(data[:,-1]).to(device).to(torch.int64)
+    # move targets onto range (0, num_classes)
+    _, y = np.unique(data[:,-1], return_inverse=True)
+    y = torch.from_numpy(y).to(device)
+    
+    return train_test_split(x, y)
 
 
 def load_insurance():
@@ -110,10 +137,13 @@ def load_insurance():
     binary target 
     '''
     data = pd.read_csv("./data/Insurance_Company/tic_data.txt", delimiter="\t").to_numpy()
-    x = torch.from_numpy(data[:,:-1]).to(device)
-    y = torch.from_numpy(data[:,-1]).to(device)
-    print(x.shape)
-    return x, y
+    x = torch.from_numpy(data[:,:-1]).to(device).to(torch.float32)
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
+    y = torch.from_numpy(data[:,-1]).to(device).to(torch.int64)
+
+    return train_test_split(x, y)
 
 
 def load_CT_slices():
