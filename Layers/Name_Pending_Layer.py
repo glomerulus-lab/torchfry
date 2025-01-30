@@ -160,7 +160,7 @@ class BIG_Fastfood_Layer(nn.Module):
         GPHBx = PHBx * self.G                                            # Apply Gaussian scaling, element wise mult, no broadcast
         HGPHBx = hadamard_transform(GPHBx)                               # Hadamard transform over last dim
         SHGPHBx = HGPHBx * self.S                                        # Final scaling, element wise mult, no broadcast
-        norm_factor = (1.0 / (self.scale * sqrt(self.input_dim)))        # Norm factor based on input_dim
+        norm_factor = (1.0 / (self.scale*sqrt(self.input_dim)))          # Norm factor based on input_dim
         Vx = (norm_factor * SHGPHBx.view(-1, self.m * self.input_dim))   # Norm factor applied, reshape into [x, m * input_dim]
         result = Vx[..., :self.output_dim]                               # Trim to exact [x, m * input_dim]
         if self.nonlinearity:                                            # If desired internal nonlinearity

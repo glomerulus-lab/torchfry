@@ -32,8 +32,7 @@ class RKS_Layer(nn.Module):
         # If Gaussian is learnable
         if self.learn_G:
             # Make G learnable with normal initialization
-            self.G = Parameter(torch.Tensor(input_dim, output_dim).to(self.device))
-            init.normal_(self.G, std=sqrt(1. / input_dim))    
+            self.G = Parameter((1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device, requires_grad=True))
         else:
             # Use a fixed random Gaussian matrix for G
             self.G = (1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device, requires_grad=False)
