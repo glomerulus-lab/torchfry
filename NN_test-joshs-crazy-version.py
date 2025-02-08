@@ -3,96 +3,122 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 import time
+import numpy as np
+import pandas as pd
 import math
+from collections import namedtuple
 from Layers.RKS_Layer import RKS_Layer
-from Layers.Name_Pending_Layer import BIG_Fastfood_Layer as Big_FastFood
+from Layers.Name_Pending_Layer import BIG_Fastfood_Layer as Name_Pending_Layer
+import wrangle_data
+import argparse
 
-class NeuralNetwork(nn.Module):
-    def __init__(self, projection, proj_dim, output_dim, linearity=False):
-        super(NeuralNetwork, self).__init__()
-        # If desired nonlinearity
-        self.linearity = linearity
+class Neural_Network(nn.Module):
+    def __init__(self, dimensions, scale, layer_type, learnables, nonlinearity, device):
+        super(Neural_Network, self).__init__()
 
-        # Single hidden layer, with relu if desired(Instead of internal projection nonlinearity)
-        self.projection = projection
-        if self.linearity:
-            self.relu = nn.ReLU()
-        self.output = nn.Linear(proj_dim, output_dim)
-        
+        layers = []
+        for i in range(len(dimensions)-1):
+
+            if layer_type == "Name_Pending":
+                layer = Name_Pending_Layer(
+                    dimensions[i], dimensions[i+1], scale, 
+                    learn_B= learnables[0], learn_G= learnables[1], learn_S= learnables[2],
+                    nonlinearity= nonlinearity=="cos", device=device
+                )
+                layers.append(layer)
+
+            elif layer_type == "RKS":
+                layer = RKS_Layer(
+                    dimensions[i], dimensions[i+1], scale,
+                    learn_G= learnables[0],
+                    nonlinearity= nonlinearity=="cos", device=device
+                )
+                layers.append(layer)
+
+            else:
+                raise ValueError(f"Impossible argument type. {layer_type} is not a valid layer.")
+
+            if nonlinearity == "relu" and i != len(dimensions)-1:
+                # relu nonlinearity and not the last layer in the network
+                layers.append(nn.ReLU())
+
+        self.network = nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.projection(x)
-        if self.linearity:
-            x = self.relu(x)
-        x = self.output(x)
-        return x
-    
+        return self.network(x)
+
+
+def iterate():
+    IterationData = namedtuple("IterationData", 
+        ["layer_type", "scale", "epochs", "depth", "batch_size", "proj_dim", "nonlinearity", "dataset"])
+    epochs = 10
+    batch_size = 512
+    network_depth = [3,2,1]
+    scales = [0.125, 0.25, 0.5, 1, 2, 4, 8]
+    projection_dimensions = [1024, 2048, 4096]
+    nonlinearites = ["none", "relu", "cos"]
+    datasets = ["red_wine"]
+    layer_types = [
+        ("Name_Pending", np.array([0,0,0], dtype=bool)),
+        ("Name_Pending", np.array([0,0,1], dtype=bool)),
+        ("Name_Pending", np.array([0,1,0], dtype=bool)),
+        ("Name_Pending", np.array([0,1,1], dtype=bool)),
+        ("Name_Pending", np.array([1,0,0], dtype=bool)),
+        ("Name_Pending", np.array([1,0,1], dtype=bool)),
+        ("Name_Pending", np.array([1,1,0], dtype=bool)),
+        ("Name_Pending", np.array([1,1,1], dtype=bool)),
+        ("RKS", np.array([0], dtype=bool)),
+        ("RKS", np.array([1], dtype=bool)),
+    ]
+    for dataset in datasets:
+        for proj_dim in projection_dimensions:
+            for depth in network_depth:
+                for scale in scales:
+                    for nonlinearity in nonlinearites:
+                        for layer_type in layer_types:
+                            yield IterationData(layer_type, scale, epochs, depth, batch_size, proj_dim, nonlinearity, dataset)
+
+data_list = {
+    "iris": wrangle_data.load_iris,
+    "animal_center": wrangle_data.load_animal_center,
+    "parkinsons": wrangle_data.load_parkinsons,
+    "red_wine": wrangle_data.load_red_wine_quality,
+    "white_wine": wrangle_data.load_white_wine_quality,
+    "insurance": wrangle_data.load_insurance,
+    "CT_slices": wrangle_data.load_CT_slices,
+    # "KEGG_network": wrangle_data.load_KEGG_network, # TODO: missing target variable
+    "year_prediction_MSD": wrangle_data.load_year_prediction_MSD,
+}
+
+parser = argparse.ArgumentParser(description="Run the script with verbose output")
+parser.add_argument('--verbose', '--v', action='store_true', help="Enable verbose mode")
+args = parser.parse_args()
+
+columns=["layer_type", "scale", "epochs", "depth", "batch_size", "proj_dim", "nonlinearity", 
+         "dataset", "learning_time", "train_forward_time", "test_forward_time", "train_loss", "test_loss"]
+log_results = pd.DataFrame(columns=columns)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# Params
-num_epochs = 500
-scale = 10
+# For each method
+for name in iterate():
 
-def next_power_of_two(x):
-    return 2**math.ceil(math.log2(x))
+    xtrain, ytrain, xtest, ytest, info = data_list[name.dataset]()
+    input_dim = info.input_dim
+    output_dim = info.output_dim
 
-class PadToNextPowerOfTwo(object):
-    def __init__(self):
-        pass
-    
-    def __call__(self, image):
-        # Get the original size
-        width, height = image.size
-        
-        # Find the next power of two for both dimensions
-        new_width = next_power_of_two(width)
-        new_height = next_power_of_two(height)
-        
-        # Calculate the padding for both sides
-        pad_left = (new_width - width) // 2
-        pad_top = (new_height - height) // 2
-        pad_right = new_width - width - pad_left
-        pad_bottom = new_height - height - pad_top
-        
-        # Apply padding
-        return transforms.functional.pad(image, (pad_left, pad_top, pad_right, pad_bottom), fill=0)
+    dimensions = [input_dim, *([name.proj_dim] * (name.depth-1)), output_dim]
 
-# Loader
-transform = transforms.Compose([PadToNextPowerOfTwo(), transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-# Import data
-trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
-# Split data into batches, and shuffle
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True)
-testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False)
+    NN = Neural_Network(dimensions, name.scale, name.layer_type[0], name.layer_type[1], name.nonlinearity, device)
+    criterion = nn.CrossEntropyLoss() if info.is_categorical else nn.MSELoss()
+    optimizer = optim.Adam(NN.parameters(), lr=0.001) # TODO: NN.parameters() is nothing
 
-from wrangle_data import load_insurance
-xtrain, ytrain, xtest, ytest = load_insurance()
-
-# Projections
-input_dim = xtrain.shape[1]
-projection_dim = 1028
-projs = [
-    RKS_Layer(input_dim, projection_dim, scale=scale, device=device, nonlinearity=False),
-    RKS_Layer(input_dim, projection_dim, scale=scale, learn_G=True, device=device, nonlinearity=False),
-    Big_FastFood(input_dim, projection_dim, scale=scale, device=device, nonlinearity=False),
-    Big_FastFood(input_dim, projection_dim, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True, nonlinearity=False),
-]
-name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_Learnable"]
-# For each projection
-for i in range(len(projs)):
-    print(name[i])
     start = time.time()
-    NN = NeuralNetwork(projection=projs[i], proj_dim=projection_dim, output_dim=10, linearity=True).to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(NN.parameters(), lr=0.001)
-
-    for epoch in range(num_epochs):
+    for epoch in range(name.epochs):
         NN.train()
 
         # sample a batch of data
-        batch_idx = [torch.randperm(xtrain.shape[0])[:512]]
+        batch_idx = [torch.randperm(xtrain.shape[0])[:name.batch_size]]
         x_batch = xtrain[batch_idx]
         y_batch = ytrain[batch_idx]
 
@@ -102,33 +128,38 @@ for i in range(len(projs)):
         # Forward pass
         outputs = NN(x_batch)
         loss = criterion(outputs, y_batch)
-
         loss.backward()
         optimizer.step()
-
         NN.eval()
-        correct = 0
-        total = 0
 
-        with torch.no_grad():
-            
-            # sample a batch of data
-            batch_idx = [torch.randperm(xtest.shape[0])[:512]]
-            x_batch = xtest[batch_idx]
-            y_batch = ytest[batch_idx]
+    learning_time = time.time() - start
 
-            outputs = NN(x_batch)
-            # if regression:
-            #     loss = criterion(outputs, y_batch)
+    # Find accuracy on test & training sets
+    with torch.no_grad():
+
+        # Find loss for categorical and regression data separetely
+        start = time.time()
+        outputs = NN(xtrain)
+        train_forward_time = time.time() - start
+        if info.is_categorical:
             _, predicted = torch.max(outputs, 1)
-            total += y_batch.size(0)
-            
-            correct += (predicted == y_batch).sum().item()
-            
-            accuracy = 100 * correct / total
-    print(f"Epoch [{epoch+1}/{num_epochs}], Test Accuracy: {accuracy:.2f}%")
+            correct = (predicted == ytrain).sum().item()
+            total = ytrain.size(0)
+            train_loss = 100 * correct / total
+        else:
+            train_loss = criterion(outputs, ytrain)
 
-    # Timing end
-    end = time.time()
-    elapsed_time = end - start
-    print(f"Training completed in: {elapsed_time:.2f} seconds\n")
+        # Find loss for categorical and regression data separetely
+        start = time.time()
+        outputs = NN(xtest)
+        test_forward_time = time.time() - start
+        if info.is_categorical:
+            _, predicted = torch.max(outputs, 1)
+            correct = (predicted == ytest).sum().item()
+            total = ytest.size(0)
+            test_loss = 100 * correct / total
+        else:
+            test_loss = criterion(outputs, ytest)
+
+    new_row = pd.Series(name + (learning_time, train_forward_time, test_forward_time, train_loss, test_loss), index=columns)
+    log_results = log_results.append(new_row, ignore_index=True)
