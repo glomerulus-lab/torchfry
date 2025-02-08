@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
+from collections import namedtuple
 import torch
 import torch.nn.functional as F
 
 from sklearn.preprocessing import OneHotEncoder
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available
+InfoData = namedtuple("InfoData", ["input_dim", "output_dim", "is_categorical"])
 
 # TODO: I couldn't find the CPU or Forest datasets from the Fastfood paper.
 
@@ -25,16 +27,21 @@ def load_iris():
     regression features -- 4 columns of data
     categorical target -- 3 classes
     '''
-    iris = pd.read_csv("./data/Iris/iris.data")
-    x = iris.iloc[:, :-1].to_numpy().astype(float)
+    data = pd.read_csv("./data/Iris/iris.data")
+    x = data.iloc[:, :-1].to_numpy().astype(float)
     x = torch.from_numpy(x).to(device)
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
 
-    y = iris.iloc[:, -1].to_numpy().astype(str)
+    y = data.iloc[:, -1].to_numpy().astype(str)
     encoder = OneHotEncoder(sparse_output=False) # sparse_output=False ensures data is returned as a np.array
     y = encoder.fit_transform(y.reshape(-1,1))
     y = torch.from_numpy(y).to(device)
 
-    return x, y
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(4, 3, True)
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_animal_center():
@@ -58,8 +65,13 @@ def load_animal_center():
     x = torch.from_numpy(x).to(device)
     y = torch.from_numpy(y).to(device)
 
-    return x, y
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
 
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(8, 11, True)
+    return xtrain, ytrain, xtest, ytest, info
 
 def load_parkinsons():
     '''
@@ -87,7 +99,9 @@ def load_parkinsons():
     y2 = target2.to_numpy().astype(float)
     y2 = torch.from_numpy(y2).to(device).to(torch.float)
     
-    return train_test_split(x, y1)
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(16, 1, False)
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_red_wine_quality():
@@ -107,7 +121,9 @@ def load_red_wine_quality():
     _, y = np.unique(data[:,-1], return_inverse=True)
     y = torch.from_numpy(y).to(device)
 
-    return train_test_split(x, y)
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(16, 6, True)
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_white_wine_quality():
@@ -127,7 +143,9 @@ def load_white_wine_quality():
     _, y = np.unique(data[:,-1], return_inverse=True)
     y = torch.from_numpy(y).to(device)
     
-    return train_test_split(x, y)
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(16, 7, True)
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_insurance():
@@ -143,7 +161,9 @@ def load_insurance():
     x = F.pad(x, (0, pad_size))
     y = torch.from_numpy(data[:,-1]).to(device).to(torch.int64)
 
-    return train_test_split(x, y)
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(128, 2, True)
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_CT_slices():
@@ -160,7 +180,13 @@ def load_CT_slices():
     data = pd.read_csv("./data/location_of_CT_slices/slice_localization_data.csv").to_numpy()
     x = torch.from_numpy(data[:,1:-1]).to(device)
     y = torch.from_numpy(data[:,-1]).to(device)
-    return x, y
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
+
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(512, 1, False)
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_KEGG_network():
@@ -176,7 +202,13 @@ def load_KEGG_network():
 
     x = torch.from_numpy(data[:,:-1]).to(device)
     y = torch.from_numpy(data[:,-1]).to(device)
-    return x, y
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
+
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(32, None, None) # target variable is unknown
+    return xtrain, ytrain, xtest, ytest, info
 
 
 def load_year_prediction_MSD():
@@ -188,5 +220,11 @@ def load_year_prediction_MSD():
     data = pd.read_csv("./data/Year_Prediction_MSD/YearPredictionMSD.txt", header=None).to_numpy()
     x = torch.from_numpy(data[:,1:]).to(device)
     y = torch.from_numpy(data[:,0]).to(device)
-    return x, y
+    # pad x to the next power of 2
+    pad_size = int(2**np.ceil(np.log2(x.size(1)))) - x.size(1)
+    x = F.pad(x, (0, pad_size))
+
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    info = InfoData(128, 91, True)
+    return xtrain, ytrain, xtest, ytest, info
 
