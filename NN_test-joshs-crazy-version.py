@@ -16,7 +16,7 @@ class Neural_Network(nn.Module):
     def __init__(self, dimensions, scale, layer_type, learnables, nonlinearity, device):
         super(Neural_Network, self).__init__()
 
-        layers = []
+        self.network = nn.ModuleList()
         for i in range(len(dimensions)-1):
 
             if layer_type == "Name_Pending":
@@ -25,7 +25,7 @@ class Neural_Network(nn.Module):
                     learn_B= learnables[0], learn_G= learnables[1], learn_S= learnables[2],
                     nonlinearity= nonlinearity=="cos", device=device
                 )
-                layers.append(layer)
+                self.network.append(layer)
 
             elif layer_type == "RKS":
                 layer = RKS_Layer(
@@ -33,19 +33,20 @@ class Neural_Network(nn.Module):
                     learn_G= learnables[0],
                     nonlinearity= nonlinearity=="cos", device=device
                 )
-                layers.append(layer)
+                self.network.append(layer)
 
             else:
                 raise ValueError(f"Impossible argument type. {layer_type} is not a valid layer.")
 
             if nonlinearity == "relu" and i != len(dimensions)-1:
                 # relu nonlinearity and not the last layer in the network
-                layers.append(nn.ReLU())
+                self.network.append(nn.ReLU())
 
-        self.network = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.network(x)
+        for layer in self.network:
+            x = layer(x)
+        return x
 
 
 def iterate():
@@ -53,7 +54,7 @@ def iterate():
         ["layer_type", "scale", "epochs", "depth", "batch_size", "proj_dim", "nonlinearity", "dataset"])
     epochs = 10
     batch_size = 512
-    network_depth = [3,2,1]
+    network_depth = [3]
     scales = [0.125, 0.25, 0.5, 1, 2, 4, 8]
     projection_dimensions = [1024, 2048, 4096]
     nonlinearites = ["none", "relu", "cos"]
@@ -89,11 +90,12 @@ data_list = {
     # "KEGG_network": wrangle_data.load_KEGG_network, # TODO: missing target variable
     "year_prediction_MSD": wrangle_data.load_year_prediction_MSD,
 }
-
+# togglable verbose mode
 parser = argparse.ArgumentParser(description="Run the script with verbose output")
 parser.add_argument('--verbose', '--v', action='store_true', help="Enable verbose mode")
 args = parser.parse_args()
 
+# store config data and run data
 columns=["layer_type", "scale", "epochs", "depth", "batch_size", "proj_dim", "nonlinearity", 
          "dataset", "learning_time", "train_forward_time", "test_forward_time", "train_loss", "test_loss"]
 log_results = pd.DataFrame(columns=columns)
@@ -101,24 +103,24 @@ log_results = pd.DataFrame(columns=columns)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # For each method
-for name in iterate():
+for config in iterate():
 
-    xtrain, ytrain, xtest, ytest, info = data_list[name.dataset]()
+    xtrain, ytrain, xtest, ytest, info = data_list[config.dataset]()
     input_dim = info.input_dim
     output_dim = info.output_dim
 
-    dimensions = [input_dim, *([name.proj_dim] * (name.depth-1)), output_dim]
+    dimensions = [input_dim, *([config.proj_dim] * (config.depth-1)), output_dim]
 
-    NN = Neural_Network(dimensions, name.scale, name.layer_type[0], name.layer_type[1], name.nonlinearity, device)
+    NN = Neural_Network(dimensions, config.scale, config.layer_type[0], config.layer_type[1], config.nonlinearity, device)
     criterion = nn.CrossEntropyLoss() if info.is_categorical else nn.MSELoss()
-    optimizer = optim.Adam(NN.parameters(), lr=0.001) # TODO: NN.parameters() is nothing
+    optimizer = optim.Adam(NN.parameters(), lr=0.001) 
 
     start = time.time()
-    for epoch in range(name.epochs):
+    for epoch in range(config.epochs):
         NN.train()
 
         # sample a batch of data
-        batch_idx = [torch.randperm(xtrain.shape[0])[:name.batch_size]]
+        batch_idx = [torch.randperm(xtrain.shape[0])[:config.batch_size]]
         x_batch = xtrain[batch_idx]
         y_batch = ytrain[batch_idx]
 
@@ -137,29 +139,35 @@ for name in iterate():
     # Find accuracy on test & training sets
     with torch.no_grad():
 
-        # Find loss for categorical and regression data separetely
+        # Time forward pass for training data
         start = time.time()
         outputs = NN(xtrain)
         train_forward_time = time.time() - start
+
+        # calculate accruacy for categorical predictions
         if info.is_categorical:
             _, predicted = torch.max(outputs, 1)
             correct = (predicted == ytrain).sum().item()
             total = ytrain.size(0)
             train_loss = 100 * correct / total
+        # calculate mean square error loss for regression predictions
         else:
             train_loss = criterion(outputs, ytrain)
 
-        # Find loss for categorical and regression data separetely
+        # Time forward pass for training data
         start = time.time()
         outputs = NN(xtest)
         test_forward_time = time.time() - start
+
+        # calculate accruacy for categorical predictions
         if info.is_categorical:
             _, predicted = torch.max(outputs, 1)
             correct = (predicted == ytest).sum().item()
             total = ytest.size(0)
             test_loss = 100 * correct / total
+        # calculate mean square error loss for regression predictions
         else:
             test_loss = criterion(outputs, ytest)
 
-    new_row = pd.Series(name + (learning_time, train_forward_time, test_forward_time, train_loss, test_loss), index=columns)
+    new_row = pd.Series(config + (learning_time, train_forward_time, test_forward_time, train_loss, test_loss), index=columns)
     log_results = log_results.append(new_row, ignore_index=True)
