@@ -171,3 +171,4 @@ for config in iterate():
 
     new_row = pd.Series(config + (learning_time, train_forward_time, test_forward_time, train_loss, test_loss), index=columns)
     log_results = log_results.append(new_row, ignore_index=True)
+    # TODO save to csv

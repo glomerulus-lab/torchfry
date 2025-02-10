@@ -68,17 +68,6 @@ class BIG_Fastfood_Layer(nn.Module):
         self.B = None 
         self.G = None
         self.S = None
-        
-        # Learnable Params
-        if self.learn_G:
-            self.G = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
-            init.normal_(self.G, std=sqrt(1/self.input_dim))
-        if self.learn_B:
-            self.B = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
-            init.normal_(self.B, std=sqrt(1/self.input_dim))
-        if self.learn_S: 
-            self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
-            init.normal_(self.S, std=sqrt(1/self.input_dim))
 
         # Sample required matrices
         self.new_feature_map(torch.float32)
@@ -102,6 +91,7 @@ class BIG_Fastfood_Layer(nn.Module):
         for i in range(self.m):
             self.P[i, :] = torch.randperm(self.input_dim, device=device)
 
+        # Non-learnable B Matrix
         if not self.learn_B:
             # Binary scaling matrix B sampled from {-1, 1}
             self.B = torch.tensor(
@@ -112,7 +102,12 @@ class BIG_Fastfood_Layer(nn.Module):
                 device=device, 
                 requires_grad=False
             )
-            
+        # Learnable B Matrix
+        else:
+            self.B = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
+            init.normal_(self.B, std=1)            
+        
+        # Non-learnable G Matrix
         if not self.learn_G:
             # Gaussian scaling matrix G initialized to random values
             self.G = torch.randn(
@@ -121,7 +116,12 @@ class BIG_Fastfood_Layer(nn.Module):
                 device=device,
                 requires_grad=False
             )
+        # Learnable G Matrix
+        else:
+            self.G = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
+            init.normal_(self.G, std=1)
 
+        # Non-learnable S Matrix
         if not self.learn_S: 
             # Scaling matrix S sampled from a chi-squared distribution
             self.S = torch.tensor(
@@ -133,10 +133,13 @@ class BIG_Fastfood_Layer(nn.Module):
                 device=device,
                 requires_grad=False
                 )
-            
             # Norm each row of S, with norm of corresponding row of G
             row_norms = torch.norm(self.G, dim=1, keepdim=True)
             self.S /= row_norms
+        # Learnable S Matrix
+        else:
+            self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
+            init.normal_(self.S, mean=sqrt(self.input_dim), std=sqrt(self.input_dim))
             
 
     def forward(self, x):

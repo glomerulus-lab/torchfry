@@ -48,35 +48,46 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True
 testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False)
 
 # Projections (3 of each type initialized separately)
-rks_projections = [
+rks = [
     RKS_Layer(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
     RKS_Layer(input_dim=2048, output_dim=2048, scale=scale, learn_G=True, device=device, nonlinearity=False),
     RKS_Layer(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
 ]
 
-rks_learnable_projections = [
+rks_learnable = [
     RKS_Layer(input_dim=1024, output_dim=2048, scale=scale, learn_G=True, device=device, nonlinearity=False),
     RKS_Layer(input_dim=2048, output_dim=2048, scale=scale, learn_G=True, device=device, nonlinearity=False),
     RKS_Layer(input_dim=2048, output_dim=2048, scale=scale, learn_G=True, device=device, nonlinearity=False),
 ]
 
-fastfood_projections = [
+fastfood = [
     Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
 ]
 
-fastfood_learnable_projections = [
+fastfood_all_learnable = [
     Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True, nonlinearity=False),
 ]
 
-name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_Learnable"]
+fastfood_s_learnable = [
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_S=True, nonlinearity=False),
+]
+
+fastfood_gb_learnable = [
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_G=True, learn_B=True, nonlinearity=False),
+]
+
+name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_Learnable", "FastFood_all_learnable", "FastFood_s_learnable", "FastFood_gb_learnable"]
 
 # For each projection setup (pass each list of projections separately)
-# for idx, proj_list in enumerate([rks_projections, rks_learnable_projections, fastfood_projections, fastfood_learnable_projections]):
-for idx, proj_list in enumerate([fastfood_learnable_projections]):
+for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_learnable, fastfood_s_learnable, fastfood_gb_learnable]):
     print(f"Model with projection type: {name[idx]}")
 
     start = time.time()
