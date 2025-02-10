@@ -67,24 +67,24 @@ fastfood = [
 ]
 
 fastfood_all_learnable = [
-    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
-    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_S=True, learn_G=True, learn_B=True, nonlinearity=False),
 ]
 
 fastfood_s_learnable = [
-    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
-    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, learn_S=True, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_S=True, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_S=True, nonlinearity=False),
 ]
 
 fastfood_gb_learnable = [
-    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, nonlinearity=False),
-    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, nonlinearity=False),
+    Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device, learn_G=True, learn_B=True, nonlinearity=False),
+    Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_G=True, learn_B=True, nonlinearity=False),
     Big_FastFood(input_dim=2048, output_dim=2048, scale=scale, device=device, learn_G=True, learn_B=True, nonlinearity=False),
 ]
 
-name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_Learnable", "FastFood_all_learnable", "FastFood_s_learnable", "FastFood_gb_learnable"]
+name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_all_learnable", "FastFood_s_learnable", "FastFood_gb_learnable"]
 
 # For each projection setup (pass each list of projections separately)
 for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_learnable, fastfood_s_learnable, fastfood_gb_learnable]):
@@ -98,30 +98,36 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(NN.parameters(), lr=0.001)
 
-    # Train the network
+    train_accuracies = []
+    test_accuracies = []
+
     for epoch in range(num_epochs):
         NN.train()
+        correct_train = 0
+        total_train = 0
 
         for images, labels in trainloader:
-            # Flatten the input images to (batch_size, 784)
             images = images.view(images.size(0), -1).to(device)
             labels = labels.to(device)
 
-            # Zero the parameter gradients
             optimizer.zero_grad()
-
-            # Forward pass
             outputs = NN(images)
             loss = criterion(outputs, labels)
-
             loss.backward()
             optimizer.step()
 
-        # Evaluate the model
+            _, predicted = torch.max(outputs, 1)
+            total_train += labels.size(0)
+            correct_train += (predicted == labels).sum().item()
+
+        train_accuracy = 100 * correct_train / total_train
+        train_accuracies.append(train_accuracy)
+
         NN.eval()
         correct = 0
         total = 0
         test_start = time.time()
+
         with torch.no_grad():
             for images, labels in testloader:
                 images = images.view(images.size(0), -1).to(device)
@@ -132,9 +138,12 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-        accuracy = 100 * correct / total
+        test_accuracy = 100 * correct / total
+        test_accuracies.append(test_accuracy)
         test_end = time.time()
-        print(f"Epoch [{epoch+1}/{num_epochs}], Test Accuracy: {accuracy:.2f}%, Completed in: {test_end-test_start:.2f} seconds")
+
+        print(f"Epoch [{epoch+1}/{num_epochs}], Train Accuracy: {train_accuracy:.2f}%, Test Accuracy: {test_accuracy:.2f}%, Completed in: {test_end-test_start:.2f} seconds")
+
 
     # Timing end
     end = time.time()

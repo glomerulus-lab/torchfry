@@ -135,7 +135,7 @@ class BIG_Fastfood_Layer(nn.Module):
                 )
             # Norm each row of S, with norm of corresponding row of G
             row_norms = torch.norm(self.G, dim=1, keepdim=True)
-            self.S /= row_norms
+            self.S = self.S / row_norms
         # Learnable S Matrix
         else:
             self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
