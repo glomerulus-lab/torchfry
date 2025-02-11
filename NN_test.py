@@ -34,7 +34,7 @@ class NeuralNetwork(nn.Module):
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Params
-num_epochs = 5
+num_epochs = 10
 scale = 10
 
 # Loader
@@ -96,9 +96,7 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
 
     start = time.time()
 
-    # Neural network with 3 hidden layers
     NN = NeuralNetwork(projections=proj_list, proj_dim=2048, output_dim=10, linearity=True).to(device)
-    
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(NN.parameters(), lr=0.001)
 
@@ -107,8 +105,6 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
 
     for epoch in range(num_epochs):
         NN.train()
-        correct_train = 0
-        total_train = 0
 
         for images, labels in trainloader:
             images = images.view(images.size(0), -1).to(device)
@@ -120,14 +116,21 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
             loss.backward()
             optimizer.step()
 
-            _, predicted = torch.max(outputs, 1)
-            total_train += labels.size(0)
-            correct_train += (predicted == labels).sum().item()
+        NN.eval()
+        correct_train = 0
+        total_train = 0
+        with torch.no_grad():
+            for images, labels in trainloader:
+                images = images.view(images.size(0), -1).to(device)
+                labels = labels.to(device)
 
+                outputs = NN(images)
+                _, predicted = torch.max(outputs, 1)
+                total_train += labels.size(0)
+                correct_train += (predicted == labels).sum().item()
         train_accuracy = 100 * correct_train / total_train
         train_accuracies.append(train_accuracy)
 
-        NN.eval()
         correct = 0
         total = 0
         test_start = time.time()
@@ -148,17 +151,12 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
 
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Accuracy: {train_accuracy:.2f}%, Test Accuracy: {test_accuracy:.2f}%, Completed in: {test_end-test_start:.2f} seconds")
 
-    # Store results
-    accuracy_results[name[idx]] = {
-        "train": train_accuracies,
-        "test": test_accuracies
-    }
+    accuracy_results[name[idx]] = {"train": train_accuracies, "test": test_accuracies}
 
     end = time.time()
     elapsed_time = end - start
     print(f"Training completed in: {elapsed_time:.2f} seconds\n")
 
-# Plot results
 plt.figure(figsize=(12, 6))
 for model_name, acc_data in accuracy_results.items():
     plt.plot(range(1, num_epochs + 1), acc_data["test"], label=f"{model_name} (Test)")
