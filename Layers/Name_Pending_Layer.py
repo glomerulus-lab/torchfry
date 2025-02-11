@@ -87,60 +87,33 @@ class BIG_Fastfood_Layer(nn.Module):
         device = self.device
         
         # Permutation matrix P
-        self.P = torch.zeros((self.m, self.input_dim), device=device, requires_grad=False, dtype=torch.int64)
-        for i in range(self.m):
-            self.P[i, :] = torch.randperm(self.input_dim, device=device)
+        self.P = torch.stack([torch.randperm(self.input_dim, device=device) for _ in range(self.m)])
 
-        # Non-learnable B Matrix
-        if not self.learn_B:
-            # Binary scaling matrix B sampled from {-1, 1}
-            self.B = torch.tensor(
-                np.random.choice([-1.0, 1.0], 
-                    size=(self.m, self.input_dim)
-                ),
-                dtype=dtype, 
-                device=device, 
-                requires_grad=False
-            )
         # Learnable B Matrix
+        if self.learn_B:
+            self.B = nn.Parameter(torch.randn(self.m, self.input_dim, device=device))
+        # Non Learnable B
         else:
-            self.B = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
-            init.normal_(self.B, std=1)            
-        
-        # Non-learnable G Matrix
-        if not self.learn_G:
-            # Gaussian scaling matrix G initialized to random values
-            self.G = torch.randn(
-                (self.m, self.input_dim), 
-                dtype=dtype,
-                device=device,
-                requires_grad=False
-            )
-        # Learnable G Matrix
-        else:
-            self.G = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
-            init.normal_(self.G, std=1)
+            self.B = torch.tensor(np.random.choice([-1, 1], size=(self.m, self.input_dim)), dtype=dtype, device=device)
 
-        # Non-learnable S Matrix
-        if not self.learn_S: 
-            # Scaling matrix S sampled from a chi-squared distribution
-            self.S = torch.tensor(
-                chi.rvs( 
-                    df=self.input_dim, 
-                    size=(self.m, self.input_dim)
-                ), 
-                dtype=dtype,
-                device=device,
-                requires_grad=False
-                )
-            # Norm each row of S, with norm of corresponding row of G
-            row_norms = torch.norm(self.G, dim=1, keepdim=True)
-            self.S = self.S / row_norms
-        # Learnable S Matrix
+        # Learnable G Matrix
+        if self.learn_G:
+            self.G = nn.Parameter(torch.randn(self.m, self.input_dim, device=device))
+        # Non Learnable G
         else:
-            self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device)) 
+            self.G = torch.randn(self.m, self.input_dim, dtype=dtype, device=device)
+
+        # Learnable S Matrix
+        if self.learn_S:
+            self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device))
             init.normal_(self.S, mean=sqrt(self.input_dim), std=sqrt(self.input_dim))
-            
+        # Non Learnable S
+        else:
+            self.S = torch.tensor(chi.rvs(df=self.input_dim, size=(self.m, self.input_dim)), dtype=dtype, device=device)
+            # Normalize S rows by corresponding G rows
+            row_norms = torch.norm(self.G, dim=1, keepdim=True)
+            with torch.no_grad():  
+                self.S.div_(row_norms)
 
     def forward(self, x):
         """
