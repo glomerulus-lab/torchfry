@@ -6,6 +6,7 @@ import time
 import math
 from Layers.RKS_Layer import RKS_Layer
 from Layers.Name_Pending_Layer import BIG_Fastfood_Layer as Big_FastFood
+import matplotlib.pyplot as plt
 
 class NeuralNetwork(nn.Module):
     def __init__(self, projections, proj_dim, output_dim, linearity=False):
@@ -44,8 +45,8 @@ trainset = datasets.MNIST(root='./data', train=True, download=True, transform=tr
 testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
 
 # Split data into batches, and shuffle
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=512, shuffle=True)
-testloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=2048, shuffle=True)
+testloader = torch.utils.data.DataLoader(testset, batch_size=2048, shuffle=False)
 
 # Projections (3 of each type initialized separately)
 rks = [
@@ -87,6 +88,9 @@ fastfood_gb_learnable = [
 name = ["RKS", "RKS_Learnable", "FastFood", "FastFood_all_learnable", "FastFood_s_learnable", "FastFood_gb_learnable"]
 
 # For each projection setup (pass each list of projections separately)
+accuracy_results = {}
+
+# For each projection setup
 for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_learnable, fastfood_s_learnable, fastfood_gb_learnable]):
     print(f"Model with projection type: {name[idx]}")
 
@@ -144,8 +148,25 @@ for idx, proj_list in enumerate([rks, rks_learnable, fastfood, fastfood_all_lear
 
         print(f"Epoch [{epoch+1}/{num_epochs}], Train Accuracy: {train_accuracy:.2f}%, Test Accuracy: {test_accuracy:.2f}%, Completed in: {test_end-test_start:.2f} seconds")
 
+    # Store results
+    accuracy_results[name[idx]] = {
+        "train": train_accuracies,
+        "test": test_accuracies
+    }
 
-    # Timing end
     end = time.time()
     elapsed_time = end - start
     print(f"Training completed in: {elapsed_time:.2f} seconds\n")
+
+# Plot results
+plt.figure(figsize=(12, 6))
+for model_name, acc_data in accuracy_results.items():
+    plt.plot(range(1, num_epochs + 1), acc_data["test"], label=f"{model_name} (Test)")
+
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy (%)")
+plt.title("Test Accuracy Over Epochs for Different Projection Layers")
+plt.legend()
+plt.grid(True)
+plt.show()
+
