@@ -1,6 +1,6 @@
 import torch
 from Layers.RKS_Layer import RKS_Layer
-from Layers.Name_Pending_Layer import BIG_Fastfood_Layer as Big_FastFood
+from Layers.FastFood_Layer import FastFood_Layer
 import matplotlib.pyplot as plt
 
 # Setup
@@ -14,7 +14,7 @@ rks_norms = []
 for _ in range(50):
     # Initialize layers
     rks = RKS_Layer(input_dim=1024, output_dim=2048, scale=scale, device=device)
-    ff = Big_FastFood(input_dim=1024, output_dim=2048, scale=scale, device=device)
+    ff = FastFood_Layer(input_dim=1024, output_dim=2048, scale=scale, device=device)
 
     # Forward pass
     ff_out = ff.forward(identity)

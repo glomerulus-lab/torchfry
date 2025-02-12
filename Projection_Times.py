@@ -7,12 +7,8 @@ from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
 from Layers.FastFood_Layer import FastFood_Layer
 from Layers.RKS_Layer import RKS_Layer
-from Layers.Name_Pending_Layer import BIG_Fastfood_Layer
 import time  
 import torch
-import math
-
-
 
 def exact_rbf_sampler(x, output_dims):
     #rks error
@@ -81,23 +77,6 @@ def sklearn_ff(x, output_dims):
     return times
 
 
-def fastfood_GPU_layer(x, output_dims):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    x = torch.tensor(x, dtype=torch.float32, device=device)
-
-    times=[]
-    for n in output_dims:
-        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
-
-        start = time.time()
-        fast_food_obj.forward(x)
-        end = time.time()
-
-        times.append(end-start)
-    # warm up
-    return times
-
-
 def RKS_GPU_layer(x, output_dims):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     x = torch.tensor(x, dtype=torch.float32, device=device)
@@ -115,13 +94,13 @@ def RKS_GPU_layer(x, output_dims):
     return times
 
 
-def BIG_ff_layer(x, output_dims):
+def FF_Layer(x, output_dims):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     x = torch.tensor(x, dtype=torch.float32, device=device)
 
     times=[]
     for n in output_dims:
-        fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
 
         start = time.time()
         fast_food_obj.forward(x)
@@ -138,17 +117,15 @@ if __name__ == '__main__':
         "Exact RBF Kernel (CPU)",
         "Random Kitchen Sink (CPU)",
         "Sklearn Fastfood (CPU)",
-        "Classic Fastfood (GPU)",
         "Random Kitchen Sink (GPU)",
-        "BIG Fastfood (GPU)"
+        "Fastfood (GPU)"
     ]
     projection_methods = [
         exact_rbf_sampler,
         other_RKS,
         sklearn_ff,
-        fastfood_GPU_layer,
         RKS_GPU_layer,
-        BIG_ff_layer,
+        FF_Layer,
     ]
 
     # Dimensioning
