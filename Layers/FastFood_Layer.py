@@ -94,14 +94,14 @@ class FastFood_Layer(nn.Module):
             self.B = nn.Parameter(torch.randn(self.m, self.input_dim, device=device))
         # Non Learnable B
         else:
-            self.B = torch.tensor(np.random.choice([-1, 1], size=(self.m, self.input_dim)), dtype=dtype, device=device)
+            self.B = nn.Parameter(torch.tensor(np.random.choice([-1, 1], size=(self.m, self.input_dim)), dtype=dtype, device=device), requires_grad=False)
 
         # Learnable G Matrix
         if self.learn_G:
             self.G = nn.Parameter(torch.randn(self.m, self.input_dim, device=device))
         # Non Learnable G
         else:
-            self.G = torch.randn(self.m, self.input_dim, dtype=dtype, device=device)
+            self.G = nn.Parameter(torch.randn(self.m, self.input_dim, dtype=dtype, device=device), requires_grad=False)
 
         # Learnable S Matrix
         if self.learn_S:
@@ -109,7 +109,7 @@ class FastFood_Layer(nn.Module):
             init.normal_(self.S, mean=sqrt(self.input_dim), std=sqrt(self.input_dim))
         # Non Learnable S
         else:
-            self.S = torch.tensor(chi.rvs(df=self.input_dim, size=(self.m, self.input_dim)), dtype=dtype, device=device)
+            self.S = nn.Parameter(torch.tensor(chi.rvs(df=self.input_dim, size=(self.m, self.input_dim)), dtype=dtype, device=device), requires_grad=False)
             # Normalize S rows by corresponding G rows
             row_norms = torch.norm(self.G, dim=1, keepdim=True)
             with torch.no_grad():  

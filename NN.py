@@ -20,7 +20,6 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
 
     training_time = time.time()
     train_accuracy, test_accuracy = [], []
-    param_count = None # TODO
 
     NN = NeuralNetwork(layers).to(device)
     criterion = nn.CrossEntropyLoss()
@@ -75,11 +74,17 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
             test_time = time.time() - test_start
         print(f"Epoch [{epoch+1}/{epochs}], Test Accuracy: {test_accuracy[-1]:.2f}%, Completed in: {test_time:.2f} seconds")
 
+
+    # Param count
+    total_params = sum(p.numel() for p in NN.parameters())
+    learnable_params = sum(p.numel() for p in NN.parameters() if p.requires_grad)
+    non_learnable_params = total_params - learnable_params
+
     # Timing of training across all epochs
     elapsed_time = time.time() - training_time
     print(f"Training completed in: {elapsed_time:.2f} seconds\n")
 
-    return param_count, train_accuracy, test_accuracy, elapsed_time, test_time
+    return learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time
 
     
 
