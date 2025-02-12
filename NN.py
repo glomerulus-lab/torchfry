@@ -15,19 +15,32 @@ class NeuralNetwork(nn.Module):
             x = proj(x)
         return x
 
+# Learnable and Non-Learnable Params
+def count_params(model):
+    learnable_params = 0
+    non_learnable_params = 0
+
+    for param in model.parameters():
+        if param.requires_grad:
+            learnable_params += param.numel()
+        else:
+            non_learnable_params += param.numel()
+    
+    return learnable_params, non_learnable_params
+
 
 def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
 
     training_time = time.time()
     train_accuracy, test_accuracy = [], []
 
-    NN = NeuralNetwork(layers).to(device)
+    model = NeuralNetwork(layers).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(NN.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Train the network
     for epoch in range(epochs):
-        NN.train()
+        model.train()
 
         for images, labels in trainloader:
             # Flatten the input images to (batch_size, 784)
@@ -38,14 +51,14 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
             optimizer.zero_grad()
 
             # Forward pass
-            outputs = NN(images)
+            outputs = model(images)
             loss = criterion(outputs, labels)
 
             loss.backward()
             optimizer.step()
 
         # Evaluate the model
-        NN.eval()
+        model.eval()
         with torch.no_grad():
             # Train accuracy 
             correct, total = 0, 0
@@ -53,7 +66,7 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
                 images = images.view(images.size(0), -1).to(device)
                 labels = labels.to(device)
 
-                outputs = NN(images)
+                outputs = model(images)
                 _, predicted = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -66,7 +79,7 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
                 images = images.view(images.size(0), -1).to(device)
                 labels = labels.to(device)
 
-                outputs = NN(images)
+                outputs = model(images)
                 _, predicted = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -75,10 +88,8 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
         print(f"Epoch [{epoch+1}/{epochs}], Test Accuracy: {test_accuracy[-1]:.2f}%, Completed in: {test_time:.2f} seconds")
 
 
-    # Param count
-    total_params = sum(p.numel() for p in NN.parameters())
-    learnable_params = sum(p.numel() for p in NN.parameters() if p.requires_grad)
-    non_learnable_params = total_params - learnable_params
+    # Get learnable and non-learnable parameters from model
+    learnable_params, non_learnable_params = count_params(model)
 
     # Timing of training across all epochs
     elapsed_time = time.time() - training_time
