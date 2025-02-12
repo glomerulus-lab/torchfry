@@ -6,6 +6,7 @@ from torchvision import datasets, transforms
 from Layers.RKS_Layer import RKS_Layer
 from Layers.FastFood_Layer import FastFood_Layer
 from NN import run_NN
+import pickle
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -76,4 +77,32 @@ moduleList.append(nn.Linear(input_dim, 10))
 
 learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time = run_NN(trainloader, testloader, moduleList, args.epochs, device)
 
-print(learnable_params, non_learnable_params)
+# You can also include some key hyperparameters for better identification
+filename = f'testing_performance/hyperparams_and_performance_proj_{args.projection}.pkl'
+
+# Define a dictionary to store the hyperparameters and performance metrics
+hyperparams_and_performance = {
+    "hyperparameters": {
+        "projection": args.projection,
+        "learnable": args.learnable,
+        "learnable_gbs": args.learnable_gbs,
+        "scale": args.scale,
+        "projection_dimensions": args.projection_dimensions,
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "batch_norm": args.batch_norm
+    },
+    "performance": {
+        "learnable_params": learnable_params,
+        "non_learnable_params": non_learnable_params,
+        "train_accuracy": train_accuracy,
+        "test_accuracy": test_accuracy,
+        "elapsed_time": elapsed_time,
+        "test_time": test_time
+    }
+}
+
+with open(filename, 'wb') as f:
+    pickle.dump(hyperparams_and_performance, f)
+
+print("Hyperparameters and performance saved to hyperparams_and_performance.pkl")
