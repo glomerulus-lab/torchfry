@@ -7,6 +7,7 @@ from Layers.RKS_Layer import RKS_Layer
 from Layers.FastFood_Layer import FastFood_Layer
 from NN import run_NN
 import pickle
+import os
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -77,8 +78,10 @@ moduleList.append(nn.Linear(input_dim, 10))
 
 learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time = run_NN(trainloader, testloader, moduleList, args.epochs, device)
 
-# You can also include some key hyperparameters for better identification
-filename = f'testing_performance/hyperparams_and_performance_proj_{args.projection}.pkl'
+os.makedirs("testing_performance", exist_ok=True)
+
+# Define the filename
+filename = f'testing_performance/projection_{args.projection}_learnable{args.learnable}_learnable_gbs_{args.learnable_gbs}_scale_{args.scale}_projection_dimensions_{args.projection_dimensions}_epochs_{args.epochs}_batch_size_{args.batch_size}_batch_norm_{args.batch_norm}.pkl'
 
 # Define a dictionary to store the hyperparameters and performance metrics
 hyperparams_and_performance = {
@@ -102,7 +105,8 @@ hyperparams_and_performance = {
     }
 }
 
+# Save the dictionary to a file
 with open(filename, 'wb') as f:
     pickle.dump(hyperparams_and_performance, f)
 
-print("Hyperparameters and performance saved to hyperparams_and_performance.pkl")
+print(f"Hyperparameters and performance saved to {filename}")
