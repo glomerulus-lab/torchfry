@@ -6,10 +6,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
-from Layers.FastFood_Layer import FastFood_Layer
 from Layers.RKS_Layer import RKS_Layer
 import torch
-from Layers.Name_Pending_Layer import BIG_Fastfood_Layer
+from fastfood.Layers.FastFood_Layer import FastFood_Layer
 
 
 
@@ -28,23 +27,6 @@ def exact_rbf_kernel(x, exact, output_dims):
         error.append(difference/num_data)
     return error
 
-
-def fastfood_GPU_layer(x, exact, output_dims):
-    #ff error
-    error = []
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    x = torch.tensor(x, dtype=torch.float32, device=device)
-
-    for dim in output_dims:
-        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
-        phi = fast_food_obj.forward(x)
-
-        ff_approx = (phi @ phi.T).cpu().detach().numpy()
-        difference = np.linalg.norm(exact-ff_approx, 'fro')
-        error.append(difference/num_data)
-    return error
-
-
 def RKS_GPU_layer(x, exact, output_dims):
     #ff error
     error = []
@@ -61,7 +43,7 @@ def RKS_GPU_layer(x, exact, output_dims):
     return error
 
 
-def BIG_ff_layer(x, exact, output_dims):
+def FF_GPU_layer(x, exact, output_dims):
 
     #BIG ff error
     error = []
@@ -69,7 +51,7 @@ def BIG_ff_layer(x, exact, output_dims):
     x = torch.tensor(x, dtype=torch.float32, device=device)
 
     for dim in output_dims:
-        fast_food_obj = BIG_Fastfood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
         phi = fast_food_obj.forward(x)
 
         ff_approx = (phi @ phi.T).cpu().detach().numpy()
@@ -84,13 +66,11 @@ if __name__ == '__main__':
         "Exact RBF",
         "RKS Layer",
         "FF Layer",
-        "BIG FF Layer",
     ]
     approx_errors = [
         exact_rbf_kernel,
-        # fastfood_GPU_layer,
         RKS_GPU_layer,
-        BIG_ff_layer,
+        FF_GPU_layer,
     ]
 
     # Dimensioning
