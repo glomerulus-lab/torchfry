@@ -5,7 +5,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from Layers.RKS_Layer import RKS_Layer
 from Layers.FastFood_Layer import FastFood_Layer
-from NN import run big ideas
+from NN import run_NN
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -74,3 +74,6 @@ for i in range(len(args.projection_dimensions)):
 # Output Layer
 moduleList.append(nn.Linear(input_dim, 10))
 
+learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time = run_NN(trainloader, testloader, moduleList, args.epochs, device)
+
+print(learnable_params, non_learnable_params)
