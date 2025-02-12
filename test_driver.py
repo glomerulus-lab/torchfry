@@ -25,6 +25,7 @@ def parse_all_args():
     parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size for training")
     parser.add_argument("--batch_norm", help="Use batch normalization (bool)", default=False)
+    parser.add_argument("--lr", help="LR of optimizer", default=0.1)
 
     return parser.parse_args()
 
@@ -76,7 +77,7 @@ for i in range(len(args.projection_dimensions)):
 # Output Layer
 moduleList.append(nn.Linear(input_dim, 10))
 
-learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time = run_NN(trainloader, testloader, moduleList, args.epochs, device)
+learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time = run_NN(trainloader, testloader, moduleList, args.epochs, device, args.lr)
 
 os.makedirs("testing_performance", exist_ok=True)
 

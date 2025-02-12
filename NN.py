@@ -29,14 +29,14 @@ def count_params(model):
     return learnable_params, non_learnable_params
 
 
-def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device):
+def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
 
     training_time = time.time()
     train_accuracy, test_accuracy = [], []
 
     model = NeuralNetwork(layers).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr)
 
     # Train the network
     for epoch in range(epochs):
