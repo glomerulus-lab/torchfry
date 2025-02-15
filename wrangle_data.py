@@ -99,7 +99,7 @@ def load_parkinsons():
     y2 = target2.to_numpy().astype(float)
     y2 = torch.from_numpy(y2).to(device).to(torch.float)
     
-    xtrain, ytrain, xtest, ytest = train_test_split(x, y)
+    xtrain, ytrain, xtest, ytest = train_test_split(x, y1)
     info = InfoData(16, 1, False)
     return xtrain, ytrain, xtest, ytest, info
 

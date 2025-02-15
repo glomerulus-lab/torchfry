@@ -85,7 +85,7 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
                 correct += (predicted == labels).sum().item()
             test_accuracy.append(100 * correct / total)
             test_time = time.time() - test_start
-        print(f"Epoch [{epoch+1}/{epochs}], Test Accuracy: {test_accuracy[-1]:.2f}%, Completed in: {test_time:.2f} seconds")
+        print(f"Epoch [{epoch+1}/{epochs}], Test Accuracy: {test_accuracy[-1]:.2f}%, Forward pass time: {test_time:.2f} seconds")
 
 
     # Get learnable and non-learnable parameters from model
