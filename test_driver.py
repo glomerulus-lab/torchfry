@@ -28,13 +28,15 @@ def sweep_params():
     for projection in ["rks", "ff"]:
         n = 8 if projection=="ff" else 2
         for i in range(n):
-            learnable = [bool(int(b)) for b in f"{i:03b}"]
+            learnable = False if i == 0 else True
+            learnable_gbs = [bool(int(b)) for b in f"{i:03b}"]
 
             for scale in scales:
                 for proj_dim in projection_dimensions:
-
-                    yield IterationData(projection, learnable, learnable, scale, proj_dim, 
-                                        epochs, batch_size, batch_norm, lr)
+                    yield IterationData(projection, 
+                                        "NA" if projection == "ff" else learnable, 
+                                        "NA" if projection == "rks" else learnable_gbs, 
+                                        scale, proj_dim, epochs, batch_size, batch_norm, lr)
 
 def parse_all_args():
     # Parses commandline arguments
@@ -54,6 +56,7 @@ def parse_all_args():
     return parser.parse_args()
 
 for args in sweep_params():
+    print(args)
 
     # Loader
     transform = transforms.Compose([
@@ -105,7 +108,7 @@ for args in sweep_params():
     os.makedirs("testing_performance", exist_ok=True)
 
     # Define the filename
-    filename = f'testing_performance/projection_{args.projection}_learnable{args.learnable}_learnable_gbs_{args.learnable_gbs}_scale_{args.scale}_projection_dimensions_{args.projection_dimensions}_epochs_{args.epochs}_batch_size_{args.batch_size}_batch_norm_{args.batch_norm}.pkl'
+    filename = f'testing_performance/proj={args.projection}-learn={args.learnable}-learn_gbs={args.learnable_gbs}-scale={args.scale}-projdims={args.projection_dimensions}-epoch={args.epochs}-batch_size={args.batch_size}-batch_norm={args.batch_norm}.pkl'
 
     # Define a dictionary to store the hyperparameters and performance metrics
     hyperparams_and_performance = {

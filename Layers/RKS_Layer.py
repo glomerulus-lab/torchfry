@@ -4,7 +4,6 @@ import numpy as np
 from torch.nn import init
 import torch.nn as nn
 from math import sqrt
-from torch.nn.parameter import Parameter
 
 class RKS_Layer(nn.Module):
     """
@@ -32,10 +31,10 @@ class RKS_Layer(nn.Module):
         # If Gaussian is learnable
         if self.learn_G:
             # Make G learnable with normal initialization
-            self.G = Parameter((1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device, requires_grad=True))
+            self.G = nn.Parameter((1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device), requires_grad=True)
         else:
             # Use a fixed random Gaussian matrix for G
-            self.G = (1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device, requires_grad=False)
+            self.G = nn.Parameter((1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device), requires_grad=False)
 
     def phi(self, x):
         """
