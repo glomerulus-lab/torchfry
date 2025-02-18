@@ -8,7 +8,7 @@ from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
 from Layers.RKS_Layer import RKS_Layer
 import torch
-from fastfood.Layers.FastFood_Layer import FastFood_Layer
+from Layers.FastFood_Layer import FastFood_Layer
 
 
 
