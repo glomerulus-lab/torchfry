@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import time
-from fast_hadamard_transform.fast_hadamard_transform_interface import hadamard_transform as cuda_hadamard
+from fast_hadamard_transform.fast_hadamard_transform.fast_hadamard_transform_interface import hadamard_transform as cuda_hadamard
 # Using your provided function as pytorch_hadamard
 
 def pytorch_hadamard(u, normalize=False):
