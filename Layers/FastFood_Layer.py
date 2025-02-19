@@ -40,7 +40,8 @@ class FastFood_Layer(nn.Module):
             The output dimension to be projected into.
         scale: float
             Scale factor for normalization
-        learn_S: boolean
+        learn_S: boolean    return np.concatenate([x_even + x_odd, x_even - x_odd])
+
             If S matrix is to be learnable
         learn_G: boolean
             If G matrix is to be learnable
@@ -128,16 +129,16 @@ class FastFood_Layer(nn.Module):
         -------
         Tensor: The transformed tensor after applying the Fastfood feature map.
         """
-        x_run = x.view(-1, 1, self.input_dim)                            # Reshape to [x, 1, input_dim]
-        Bx = x_run * self.B                                              # Apply binary scaling, broadcast over 2nd dim to [x, m, input_dim]
+        x = x.view(-1, 1, self.input_dim)                                # Reshape to [x, 1, input_dim]
+        Bx = x * self.B                                                  # Apply binary scaling, broadcast over 2nd dim to [x, m, input_dim]
         HBx = hadamard_transform(Bx)                                     # Hadamard transform over last dim
         index = self.P.unsqueeze(0).expand(HBx.size(0), -1, -1)          # Add additional dim to Permute, and match size to HBx
         PHBx = HBx.gather(-1, index)                                     # Permute HBx using P on final dim of HBx
-        GPHBx = PHBx * self.G                                            # Apply Gaussian scaling, element wise mult, no broadcast
-        HGPHBx = hadamard_transform(GPHBx)                               # Hadamard transform over last dim
-        SHGPHBx = HGPHBx * self.S                                        # Final scaling, element wise mult, no broadcast
+        PHBx.mul_(self.G)                                                # Apply Gaussian scaling, element wise mult, no broadcast
+        HGPHBx = hadamard_transform(PHBx)                                # Hadamard transform over last dim
+        HGPHBx.mul_(self.S)                                              # Final scaling, element wise mult, no broadcast
         norm_factor = (1.0 / (self.scale*sqrt(self.input_dim)))          # Norm factor based on input_dim
-        Vx = (norm_factor * SHGPHBx.view(-1, self.m * self.input_dim))   # Norm factor applied, reshape into [x, m * input_dim]
+        Vx = HGPHBx.view(-1, self.m * self.input_dim).mul_(norm_factor)  # Norm factor applied, reshape into [x, m * input_dim]
         result = Vx[..., :self.output_dim]                               # Trim to exact [x, m * input_dim]
         if self.nonlinearity:                                            # If desired internal nonlinearity
             result = self.phi(result)                                    # Nonlinearity
