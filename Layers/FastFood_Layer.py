@@ -6,24 +6,7 @@ from torch.nn import init
 import torch.nn as nn
 from math import sqrt
 from scipy.stats import chi
-
-def hadamard_transform(u, normalize=False):
-    """Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
-    n must be a power of 2.
-    Parameters:
-        u: Tensor of shape (..., n)
-        normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
-    Returns:
-        product: Tensor of shape (..., n)
-    """
-    n = u.shape[-1]
-    m = int(np.log2(n))
-    assert n == 1 << m, 'n must be a power of 2'
-    x = u[..., np.newaxis]
-    for d in range(m)[::-1]:
-        x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
-
-    return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
+from fast_hadamard_transform.fast_hadamard_transform_interface import hadamard_transform
 
 class FastFood_Layer(nn.Module):
     """
