@@ -10,12 +10,12 @@ from Layers.RKS_Layer import RKS_Layer
 import time  
 import torch
 
-def exact_rbf_sampler(x, output_dims):
-    #rks error
+def exact_rbf_sampler(input_dims):
     times = []
-    for dim in output_dims:
-        #rks approx
-        rks = RBFSampler(gamma=(1/(2*scale**2)),n_components=dim)
+    for dim in input_dims:
+        x = np.random.rand(4096, dim)
+        output_dim = dim * 4
+        rks = RBFSampler(gamma=(1/(2*scale**2)),n_components=output_dim)
         rks.fit(x)
 
         start = time.time()
@@ -23,16 +23,14 @@ def exact_rbf_sampler(x, output_dims):
         end = time.time()
 
         times.append(end-start)
-    # warm up
     return times
 
-
-def other_RKS(x, output_dims):
+def other_RKS(input_dims):
     times = []
-    #rks error
-    for dim in output_dims:
-        #rks approx
-        rks = projections.rks(dim, scale)
+    for dim in input_dims:
+        x = np.random.rand(4096, dim)
+        output_dim = dim * 4
+        rks = projections.rks(output_dim, scale)
         rks.fit(x)
 
         start = time.time()
@@ -40,17 +38,15 @@ def other_RKS(x, output_dims):
         end = time.time()
 
         times.append(end-start)
-    # warm up
     return times
 
-
-def sklearn_ff(x, output_dims):
-    #ff error
+def sklearn_ff(input_dims):
     times = []
-    for dim in output_dims:
+    for dim in input_dims:
+        x = np.random.rand(4096, dim)
+        output_dim = dim * 4
         trade = 'accuracy'
-        #ff approx
-        ff = Fastfood(sigma=scale, n_components=dim, tradeoff_mem_accuracy=trade)
+        ff = Fastfood(sigma=scale, n_components=output_dim, tradeoff_mem_accuracy=trade)
         ff.fit(x)
         ff.transform(x)
 
@@ -62,57 +58,51 @@ def sklearn_ff(x, output_dims):
         VX = ff._scale_transformed_data(ff._S, HGPHBX)
         VX = torch.tensor(VX)
 
-        #memory
         if trade == 'mem':
             VX = torch.cos(VX + ff._U)
             output = VX * np.sqrt(2.0 / VX.shape[1])
 
-        #accuracy: non non linearity
         if trade == 'accuracy':
             (1 / np.sqrt(VX.shape[1])) * torch.hstack([torch.cos(VX), torch.sin(VX)])
 
         end = time.time()
         times.append(end-start)
-    # warm up
     return times
 
-
-def RKS_GPU_layer(x, output_dims):
+def RKS_GPU_layer(input_dims):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    x = torch.tensor(x, dtype=torch.float32, device=device)
-
     times=[]
-    for n in output_dims:
-        rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+    for dim in input_dims:
+        x = np.random.rand(4096, dim)
+        x = torch.tensor(x, dtype=torch.float32, device=device)
+        output_dim = dim * 4
+        rks_obj = RKS_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
 
         start = time.time()
         rks_obj.forward(x)
         end = time.time()
 
         times.append(end-start)
-    # warm up
     return times
 
-
-def FF_Layer(x, output_dims):
+def FF_Layer(input_dims):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    x = torch.tensor(x, dtype=torch.float32, device=device)
-
     times=[]
-    for n in output_dims:
-        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=n, scale=scale, device=device)
+    for dim in input_dims:
+        x = np.random.rand(4096, dim)
+        x = torch.tensor(x, dtype=torch.float32, device=device)
+
+        output_dim = dim * 4
+        fast_food_obj = FastFood_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
 
         start = time.time()
         fast_food_obj.forward(x)
         end = time.time()
 
         times.append(end-start)
-    # warm up
     return times
 
-
 if __name__ == '__main__':
-    
     proj_names = [
         "Exact RBF Kernel (CPU)",
         "Random Kitchen Sink (CPU)",
@@ -128,22 +118,16 @@ if __name__ == '__main__':
         FF_Layer,
     ]
 
-    # Dimensioning
-    input_dim = 128
-    output_dims = [512,512,512,1024,2048,4096,8192,16384]
-    num_data = 8_192
-    # Data
-    x = np.random.rand(num_data, input_dim)
-    
-    # Universal Scale
+    input_dims = [128, 128, 128, 256, 512, 1024, 2048, 4096, 8192]
+    num_data = 4096
     scale = 20
 
     for name, proj_method in zip(proj_names, projection_methods):
-        proj_time = proj_method(x, output_dims)
-        plt.plot(output_dims[2:], proj_time[2:], label=name, marker='o')
+        proj_time = proj_method(input_dims)
+        plt.plot(input_dims[2:], proj_time[2:], label=name, marker='o')
 
-    plt.xlabel('Dimension')
-    plt.xticks(output_dims[2:], output_dims[2:], rotation=90)
+    plt.xlabel('Input Dimension')
+    plt.xticks(input_dims[2:], input_dims[2:], rotation=90)
     plt.ylabel('Time (seconds)')
     plt.yscale('log')
     plt.title('Projection Times')
