@@ -10,22 +10,27 @@ from Layers.RKS_Layer import RKS_Layer
 import time  
 import torch
 
-def exact_rbf_sampler(input_dims):
+def exact_rbf_sampler(input_dims, num_runs=10):
     times = []
     for dim in input_dims:
         x = np.random.rand(4096, dim)
         output_dim = dim * 4
-        rks = RBFSampler(gamma=(1/(2*scale**2)),n_components=output_dim)
+        rks = RBFSampler(gamma=(1/(2*scale**2)), n_components=output_dim)
         rks.fit(x)
 
-        start = time.time()
-        rks.transform(x)
-        end = time.time()
+        total_time = 0
+        for _ in range(num_runs):
+            start = time.time()
+            rks.transform(x)
+            end = time.time()
+            total_time += (end - start)
 
-        times.append(end-start)
+        avg_time = total_time / num_runs
+        times.append(avg_time)
+
     return times
 
-def other_RKS(input_dims):
+def other_RKS(input_dims, num_runs=10):
     times = []
     for dim in input_dims:
         x = np.random.rand(4096, dim)
@@ -33,14 +38,19 @@ def other_RKS(input_dims):
         rks = projections.rks(output_dim, scale)
         rks.fit(x)
 
-        start = time.time()
-        rks.transform(x)
-        end = time.time()
+        total_time = 0
+        for _ in range(num_runs):
+            start = time.time()
+            rks.transform(x)
+            end = time.time()
+            total_time += (end - start)
 
-        times.append(end-start)
+        avg_time = total_time / num_runs
+        times.append(avg_time)
+
     return times
 
-def sklearn_ff(input_dims):
+def sklearn_ff(input_dims, num_runs=10):
     times = []
     for dim in input_dims:
         x = np.random.rand(4096, dim)
@@ -50,44 +60,55 @@ def sklearn_ff(input_dims):
         ff.fit(x)
         ff.transform(x)
 
-        start = time.time()
-        X_padded = ff._pad_with_zeros(x)
-        HGPHBX = ff._apply_approximate_gaussian_matrix(
-            ff._B, ff._G, ff._P, X_padded
-        )
-        VX = ff._scale_transformed_data(ff._S, HGPHBX)
-        VX = torch.tensor(VX)
+        total_time = 0
+        for _ in range(num_runs):
+            start = time.time()
+            X_padded = ff._pad_with_zeros(x)
+            HGPHBX = ff._apply_approximate_gaussian_matrix(
+                ff._B, ff._G, ff._P, X_padded
+            )
+            VX = ff._scale_transformed_data(ff._S, HGPHBX)
+            VX = torch.tensor(VX)
 
-        if trade == 'mem':
-            VX = torch.cos(VX + ff._U)
-            output = VX * np.sqrt(2.0 / VX.shape[1])
+            if trade == 'mem':
+                VX = torch.cos(VX + ff._U)
+                output = VX * np.sqrt(2.0 / VX.shape[1])
 
-        if trade == 'accuracy':
-            (1 / np.sqrt(VX.shape[1])) * torch.hstack([torch.cos(VX), torch.sin(VX)])
+            if trade == 'accuracy':
+                (1 / np.sqrt(VX.shape[1])) * torch.hstack([torch.cos(VX), torch.sin(VX)])
 
-        end = time.time()
-        times.append(end-start)
+            end = time.time()
+            total_time += (end - start)
+
+        avg_time = total_time / num_runs
+        times.append(avg_time)
+
     return times
 
-def RKS_GPU_layer(input_dims):
+def RKS_GPU_layer(input_dims, num_runs=10):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    times=[]
+    times = []
     for dim in input_dims:
         x = np.random.rand(4096, dim)
         x = torch.tensor(x, dtype=torch.float32, device=device)
         output_dim = dim * 4
         rks_obj = RKS_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
 
-        start = time.time()
-        rks_obj.forward(x)
-        end = time.time()
+        total_time = 0
+        for _ in range(num_runs):
+            start = time.time()
+            rks_obj.forward(x)
+            end = time.time()
+            total_time += (end - start)
 
-        times.append(end-start)
+        avg_time = total_time / num_runs
+        times.append(avg_time)
+
     return times
 
-def FF_Layer(input_dims):
+def FF_Layer(input_dims, num_runs=10):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    times=[]
+    times = []
     for dim in input_dims:
         x = np.random.rand(4096, dim)
         x = torch.tensor(x, dtype=torch.float32, device=device)
@@ -95,11 +116,16 @@ def FF_Layer(input_dims):
         output_dim = dim * 4
         fast_food_obj = FastFood_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
 
-        start = time.time()
-        fast_food_obj.forward(x)
-        end = time.time()
+        total_time = 0
+        for _ in range(num_runs):
+            start = time.time()
+            fast_food_obj.forward(x)
+            end = time.time()
+            total_time += (end - start)
 
-        times.append(end-start)
+        avg_time = total_time / num_runs
+        times.append(avg_time)
+
     return times
 
 if __name__ == '__main__':
@@ -118,13 +144,13 @@ if __name__ == '__main__':
         FF_Layer,
     ]
 
-    input_dims = [128, 128, 128, 256, 512, 1024, 2048, 4096, 8192]
+    input_dims = [128, 128, 128, 128, 256, 512, 1024, 2048, 4096, 8192]
     num_data = 4096
     scale = 20
 
     for name, proj_method in zip(proj_names, projection_methods):
-        proj_time = proj_method(input_dims)
-        plt.plot(input_dims[2:], proj_time[2:], label=name, marker='o')
+        proj_time = proj_method(input_dims, num_runs=10)
+        plt.plot(input_dims[3:], proj_time[3:], label=name, marker='o')
 
     plt.xlabel('Input Dimension')
     plt.xticks(input_dims[2:], input_dims[2:], rotation=90)
