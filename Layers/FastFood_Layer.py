@@ -7,9 +7,7 @@ import torch.nn as nn
 from math import sqrt
 from scipy.stats import chi
 import importlib
-
-fast_hadamard = importlib.import_module("fast-hadamard-transform.fast_hadamard_transform.fast_hadamard_transform_interface")
-hadamard_transform = getattr(fast_hadamard, "hadamard_transform")
+from fast_hadamard_transform.fast_hadamard_transform_interface import hadamard_transform
 
 class FastFood_Layer(nn.Module):
     """

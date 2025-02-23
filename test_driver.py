@@ -22,16 +22,16 @@ def sweep_params():
          "batch_size", "batch_norm", "lr"])
 
     # Define fixed values for some parameters
-    epochs = 10
+    epochs = 2
     batch_size = 512
     batch_norm = True
     lr = 0.1
-    scales = [0.01, 0.1, 1, 10]
+    scales = [1]
     projection_dimensions = [[4096, 4096, 4096]]
 
     # Iterate over combinations of projection type and learnable layers
-    for projection in ["rks", "ff"]:
-        n = 8 if projection == "ff" else 2  # Number of learnable configurations based on projection type
+    for projection in ["rks"]:
+        n = 8 if projection == "ff" else 1  # Number of learnable configurations based on projection type
 
         # Generate all combinations of learnable and non-learnable settings
         for i in range(n):
@@ -109,7 +109,7 @@ for args in sweep_params():
         
         # Optionally add batch normalization after each layer
         if args.batch_norm:
-            moduleList.append(nn.BatchNorm1d(affine=False))
+            moduleList.append(nn.BatchNorm1d(args.projection_dimensions[i], affine=False))
 
         # Nonlinearity (ReLU) after each layer
         moduleList.append(nn.ReLU())
@@ -119,38 +119,56 @@ for args in sweep_params():
     moduleList.append(nn.Linear(input_dim, 10))  # 10 output classes for FashionMNIST
 
     # Initialize lists to store metrics per epoch for all runs
-    train_accuracies_per_epoch_all_runs = [[] for _ in range(args.epochs)]
-    test_accuracies_per_epoch_all_runs = [[] for _ in range(args.epochs)]
-    elapsed_times_per_epoch_all_runs = [[] for _ in range(args.epochs)]
-    test_times_per_epoch_all_runs = [[] for _ in range(args.epochs)]
+    train_accuracies_per_epoch_all_runs = []
+    test_accuracies_per_epoch_all_runs = []
+    elapsed_times_per_epoch_all_runs = []
+    test_times_per_epoch_all_runs = []
 
     # Run the model 10 times to get accurate performance stats
-    for run in range(10):
+    for run in range(3):
+        print(f"Round {run+1}:")
         # Run the neural network and get performance metrics for each run
         learnable_params, non_learnable_params, train_accuracies, test_accuracies, elapsed_times, test_times = run_NN(trainloader, testloader, moduleList, args.epochs, device, args.lr)
 
         # Store the accuracies and times for each epoch in the current run
-        for epoch in range(args.epochs):
-            train_accuracies_per_epoch_all_runs[epoch].append(train_accuracies[epoch])
-            test_accuracies_per_epoch_all_runs[epoch].append(test_accuracies[epoch])
-            elapsed_times_per_epoch_all_runs[epoch].append(elapsed_times[epoch])
-            test_times_per_epoch_all_runs[epoch].append(test_times[epoch])
+        train_accuracies_per_epoch_all_runs.append(train_accuracies)
+        test_accuracies_per_epoch_all_runs.append(test_accuracies)
+        
+    elapsed_times_per_epoch_all_runs.append(elapsed_times)
+    test_times_per_epoch_all_runs.append(test_times)
 
     # Calculate the mean and std of accuracies and times across all 10 runs for each epoch
     train_accuracy_means = [np.mean(train_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
     train_accuracy_stds = [np.std(train_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
     test_accuracy_means = [np.mean(test_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
     test_accuracy_stds = [np.std(test_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    elapsed_time_means = [np.mean(elapsed_times_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    elapsed_time_stds = [np.std(elapsed_times_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    test_time_means = [np.mean(test_times_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    test_time_stds = [np.std(test_times_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
+    elapsed_time_mean = [np.mean(elapsed_times_per_epoch_all_runs)]
+    test_time_mean = [np.mean(test_times_per_epoch_all_runs)]
 
     # Ensure directory exists to save performance metrics
     os.makedirs("testing_performance", exist_ok=True)
 
-    # Define filename for saving results
-    filename = f'testing_performance/proj={args.projection}-learn={args.learnable}-learn_gbs={args.learnable_gbs}-scale={args.scale}-projdims={args.projection_dimensions}-epoch={args.epochs}-batch_size={args.batch_size}-batch_norm={args.batch_norm}.pkl'
+    # Build parts of the filename separately
+    base = f"testing_performance/{args.projection}"
+
+    # Handle projection-specific parts
+    if args.projection == 'rks':
+        projection_part = f"-{args.learnable}"
+    elif args.projection == 'ff':
+        gbs_part = ''.join(['L' if g else 'N' for g in args.learnable_gbs])
+        projection_part = f"-GBS_{gbs_part}"
+    else:
+        projection_part = "-GBS_"
+
+    # Other filename components
+    scale_part = f"-scale={args.scale}"
+    proj_dims = f"-projdims=[{args.projection_dimensions[0]}_{args.projection_dimensions[1]}_{args.projection_dimensions[2]}]"
+    epoch_part = f"-epochs={args.epochs}"
+    batch_part = f"-batch_size={args.batch_size}"
+    batch_norm_part = f"-{'Yes' if args.batch_norm else 'No'}.pkl"
+
+    # Combine all parts
+    filename = base + projection_part + scale_part + proj_dims + epoch_part + batch_part + batch_norm_part
 
     # Create a dictionary to store hyperparameters and performance metrics
     hyperparams_and_performance = {
@@ -169,12 +187,10 @@ for args in sweep_params():
             "non_learnable_params": non_learnable_params,
             "train_accuracy_means": train_accuracy_means,
             "test_accuracy_means": test_accuracy_means,
-            "elapsed_time_means": elapsed_time_means,
-            "test_time_means": test_time_means,
+            "elapsed_time_means": elapsed_time_mean,
+            "test_time_means": test_time_mean,
             "train_accuracy_stds": train_accuracy_stds,
             "test_accuracy_stds": test_accuracy_stds,
-            "elapsed_time_stds": elapsed_time_stds,
-            "test_time_stds": test_time_stds,
             "test_accuracy": test_accuracies_per_epoch_all_runs,
             "train_accuracy": train_accuracies_per_epoch_all_runs,
             "elapsed_times": elapsed_times_per_epoch_all_runs,
