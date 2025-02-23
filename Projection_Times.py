@@ -130,16 +130,16 @@ def FF_Layer(input_dims, num_runs=10):
 
 if __name__ == '__main__':
     proj_names = [
-        "Exact RBF Kernel (CPU)",
-        "Random Kitchen Sink (CPU)",
-        "Sklearn Fastfood (CPU)",
+        # "Exact RBF Kernel (CPU)",
+        # "Random Kitchen Sink (CPU)",
+        # "Sklearn Fastfood (CPU)",
         "Random Kitchen Sink (GPU)",
         "Fastfood (GPU)"
     ]
     projection_methods = [
-        exact_rbf_sampler,
-        other_RKS,
-        sklearn_ff,
+        # exact_rbf_sampler,
+        # other_RKS,
+        # sklearn_ff,
         RKS_GPU_layer,
         FF_Layer,
     ]
