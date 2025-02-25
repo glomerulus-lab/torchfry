@@ -120,9 +120,9 @@ class FastFood_Layer(nn.Module):
         PHBx = HBx.gather(-1, index)                                     # Permute HBx using P on final dim of HBx
         PHBx.mul_(self.G)                                                # Apply Gaussian scaling, element wise mult, no broadcast
         HGPHBx = hadamard_transform(PHBx)                                # Hadamard transform over last dim
-        HGPHBx.mul_(self.S)                                              # Final scaling, element wise mult, no broadcast
+        SHGPHBx = HGPHBx * self.S                                        # Final scaling, element wise mult, no broadcast
         norm_factor = (1.0 / (self.scale*sqrt(self.input_dim)))          # Norm factor based on input_dim
-        Vx = HGPHBx.view(-1, self.m * self.input_dim).mul_(norm_factor)  # Norm factor applied, reshape into [x, m * input_dim]
+        Vx = SHGPHBx.view(-1, self.m * self.input_dim).mul_(norm_factor)  # Norm factor applied, reshape into [x, m * input_dim]
         result = Vx[..., :self.output_dim]                               # Trim to exact [x, m * input_dim]
         if self.nonlinearity:                                            # If desired internal nonlinearity
             result = self.phi(result)                                    # Nonlinearity
