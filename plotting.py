@@ -3,10 +3,13 @@ import pickle
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 
 def load_pickle_files(paths):
     """Loads all pickle files from given paths (directory or individual files)."""
     data_list = []
+    names = []
     
     for path in paths:
         if os.path.isdir(path):
@@ -15,13 +18,25 @@ def load_pickle_files(paths):
                     file_path = os.path.join(path, filename)
                     with open(file_path, "rb") as f:
                         data = pickle.load(f)
-                        data_list.append(data)
+                        matrix = np.array(data['performance']['test_accuracy'])
+                        data_list.append(matrix)
+                        names.append(file_path)
+                        print(file_path)
+                        # series = pd.concat([pd.Series(data["hyperparameters"]), pd.Series(data["performance"])])
+                        # data_list.append(series)
         elif path.endswith(".pkl"):
             with open(path, "rb") as f:
                 data = pickle.load(f)
-                data_list.append(data)
+                series = pd.concat([pd.Series(data["hyperparameters"]), pd.Series(data["performance"])])
+                data_list.append(series)
 
-    return data_list
+    write_filename = "testing_performance/Wednesday_plots/extracted_data.csv"
+    with open(write_filename, "w") as f:
+        for i, matrix in enumerate(data_list):
+            np.savetxt(f, matrix, delimiter=",", header=f"# {names[i]}", comments="")
+            f.write("\n")  # Add blank line between matrices
+
+    return None
 
 def generate_label(hyperparams):
     """Generate a label based on 'projection', 'learnable_gbs', and 'scale' rules."""
@@ -91,14 +106,34 @@ def plot_test_accuracies(data_list):
     plt.grid(True)
     plt.show()
 
+def CI_plots(directory):
+    # 
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+
+    for i, filename in enumerate(os.listdir(directory)):
+        if filename.endswith('.csv'):
+            file_path = os.path.join(directory, filename)
+            CI = np.genfromtxt(file_path, delimiter=',', skip_header=1)
+            # TODO: seaborn plots
+            x = np.arange(1, 11)
+            sns.lineplot(x=x, y=CI[0], label=filename.split("-scale")[0], marker='o')
+            plt.fill_between(x, CI[1], CI[2], alpha=0.2)
+    plt.title('Performance compared with different learnables.')
+    plt.xlabel('Epochs')
+    plt.ylabel('Test Accuracy')
+    plt.xticks(x)
+    plt.legend()
+    plt.savefig(f"{directory}/figure.png", dpi=300)
+    plt.show()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Plot test accuracy from pickle files.")
     parser.add_argument('paths', type=str, nargs='+', help="Path(s) to pickle files or directories.")
     
     args = parser.parse_args()
     
-    data_list = load_pickle_files(args.paths)
-    plot_test_accuracies(data_list)
-
+    data_list = CI_plots(args.paths)
+    
 if __name__ == "__main__":
-    main()
+    CI_plots(r"testing_performance\Wednesday_plots\inner_folder")
