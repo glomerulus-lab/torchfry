@@ -19,60 +19,65 @@ def pytorch_hadamard(u, normalize=False):
 dim = 16_384
 batch_size = 8_192
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+dtype = torch.float32
+num_warmup = 5
+num_trials = 40
 
 # Create random test data
-data = torch.randn(batch_size, dim, device=device, dtype=torch.float32)
+data = torch.randn(batch_size, dim, device=device, dtype=dtype)
 # Hadamard matrix
-had = torch.tensor(scipy.linalg.hadamard(dim), device=device, dtype=torch.float32)
+had = torch.tensor(scipy.linalg.hadamard(dim), device=device, dtype=dtype)
 # Random Gaussian Matrix
-gaus = torch.randn((dim, dim), device=device)
-
+gaus = torch.randn((dim, dim), device=device, dtype=dtype)
 
 # Warm up the GPU
-for _ in range(10):
+for _ in range(num_warmup):
     _ = cuda_hadamard(data)
     _ = pytorch_hadamard(data)
-    F.linear(data, had)
-    result = data @ gaus 
-    
-# Test DAO version
+    _ = F.linear(data, had)
+    _ = data @ gaus
+
+# Test CUDA Hadamard
 cuda_times = []
-for _ in range(40):
+for _ in range(num_trials):
+    torch.cuda.synchronize()
     start = time.perf_counter()
     _ = cuda_hadamard(data)
     cuda_times.append(time.perf_counter() - start)
 
-# Test Recursive version
+# Test PyTorch Hadamard
 pytorch_times = []
-for _ in range(40):
+for _ in range(num_trials):
+    torch.cuda.synchronize()
     start = time.perf_counter()
     _ = pytorch_hadamard(data)
     pytorch_times.append(time.perf_counter() - start)
 
-# Scipy version
+# Test Scipy Hadamard (Matrix Multiplication)
 scipy_times = []
-for _ in range(40):
+for _ in range(num_trials):
+    torch.cuda.synchronize()
     start = time.perf_counter()
-    F.linear(data, had) 
+    _ = F.linear(data, had)
     scipy_times.append(time.perf_counter() - start)
 
-# Scipy version
+# Test Gaussian Matrix Multiplication
 matrix_times = []
-for _ in range(40):
+for _ in range(num_trials):
+    torch.cuda.synchronize()
     start = time.perf_counter()
-    result = data @ gaus 
+    _ = data @ gaus
     matrix_times.append(time.perf_counter() - start)
 
-# Calculate statistics
-cuda_mean = np.mean(cuda_times) * 1000
-cuda_std = np.std(cuda_times) * 1000
-pytorch_mean = np.mean(pytorch_times) * 1000
-pytorch_std = np.std(pytorch_times) * 1000
-scipy_mean = np.mean(scipy_times) * 1000
-scipy_std = np.std(scipy_times) * 1000
-matrix_mean = np.mean(matrix_times) * 1000
-matrix_std = np.std(matrix_times) * 1000
+# Calculate statistics (ms)
+def calc_stats(times):
+    times_ms = np.array(times) * 1000
+    return times_ms.mean(), times_ms.std()
 
+cuda_mean, cuda_std = calc_stats(cuda_times)
+pytorch_mean, pytorch_std = calc_stats(pytorch_times)
+scipy_mean, scipy_std = calc_stats(scipy_times)
+matrix_mean, matrix_std = calc_stats(matrix_times)
 
 print(f"Dao FWHT:")
 print(f"Mean time: {cuda_mean:.2f} ms ± {cuda_std:.2f} ms")
