@@ -1,4 +1,5 @@
 import os
+import re
 import pickle
 import pandas as pd
 import argparse
@@ -6,37 +7,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-def load_pickle_files(paths):
-    """Loads all pickle files from given paths (directory or individual files)."""
-    data_list = []
-    names = []
+def load_pickle_files(directory):
+    """Loads all pickle files from a folder. Then computes confidence 
+    intervals for the test accuracy across all epochs."""
     
-    for path in paths:
-        if os.path.isdir(path):
-            for filename in os.listdir(path):
-                if filename.endswith(".pkl"):
-                    file_path = os.path.join(path, filename)
-                    with open(file_path, "rb") as f:
-                        data = pickle.load(f)
-                        matrix = np.array(data['performance']['test_accuracy'])
-                        data_list.append(matrix)
-                        names.append(file_path)
-                        print(file_path)
-                        # series = pd.concat([pd.Series(data["hyperparameters"]), pd.Series(data["performance"])])
-                        # data_list.append(series)
-        elif path.endswith(".pkl"):
-            with open(path, "rb") as f:
+    names = []
+    plotting_CI = []
+    for filename in os.listdir(directory):
+        names.append(filename)
+        if filename.endswith(".pkl"):
+            file_path = os.path.join(directory, filename)
+            with open(file_path, "rb") as f:
                 data = pickle.load(f)
-                series = pd.concat([pd.Series(data["hyperparameters"]), pd.Series(data["performance"])])
-                data_list.append(series)
+                matrix = np.array(data['performance']['test_accuracy'])
 
-    write_filename = "testing_performance/Wednesday_plots/extracted_data.csv"
-    with open(write_filename, "w") as f:
-        for i, matrix in enumerate(data_list):
-            np.savetxt(f, matrix, delimiter=",", header=f"# {names[i]}", comments="")
-            f.write("\n")  # Add blank line between matrices
-
-    return None
+                # use seaborn to compute a non-parametric CI for each epoch
+                CI = []
+                for epoch in matrix:
+                    boot_ci = sns.algorithms.bootstrap(epoch, func=np.mean, n_boot=1000, ci=95)
+                    ci_matrix = np.array([np.mean(epoch), np.percentile(boot_ci, 2.5), np.percentile(boot_ci, 97.5)])
+                    CI.append(ci_matrix)
+                CI = np.array(CI)
+                plotting_CI.append(CI)
+    return np.array(plotting_CI), names
 
 def generate_label(hyperparams):
     """Generate a label based on 'projection', 'learnable_gbs', and 'scale' rules."""
@@ -106,24 +99,21 @@ def plot_test_accuracies(data_list):
     plt.grid(True)
     plt.show()
 
-def CI_plots(directory):
-    # 
+def CI_plots(matrix, names, outfile= "figure.png"):
+    # TODO: change to accept matrix as an input
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 
-    for i, filename in enumerate(os.listdir(directory)):
-        if filename.endswith('.csv'):
-            file_path = os.path.join(directory, filename)
-            CI = np.genfromtxt(file_path, delimiter=',', skip_header=1)
-            # TODO: seaborn plots
-            x = np.arange(1, 11)
-            sns.lineplot(x=x, y=CI[0], label=filename.split("-scale")[0], marker='o')
-            plt.fill_between(x, CI[1], CI[2], alpha=0.2)
-    plt.title('Performance compared with different learnables.')
+    for i, table in enumerate(matrix):
+        x = np.arange(1, table.shape[0]+1)
+        sns.lineplot(x=x, y=table[:,0], label= names[i].split("-scale")[0], marker='o')
+        plt.fill_between(x, table[:,1], table[:,2], alpha=0.2)
+        
+    plt.title('Fastfood performance compared with different learning rates')
     plt.xlabel('Epochs')
     plt.ylabel('Test Accuracy')
     plt.xticks(x)
     plt.legend()
-    plt.savefig(f"{directory}/figure.png", dpi=300)
+    plt.savefig(outfile, dpi=300)
     plt.show()
 
 
@@ -136,4 +126,5 @@ def main():
     data_list = CI_plots(args.paths)
     
 if __name__ == "__main__":
-    CI_plots(r"testing_performance\Wednesday_plots\inner_folder")
+    foo, names = load_pickle_files("learnables")
+    CI_plots(foo, names)
