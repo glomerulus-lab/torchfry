@@ -15,6 +15,7 @@ import numpy as np
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Function to generate different hyperparameter combinations
+# EDIT THIS TO TEST ON DESIRED HYPERPARAMETERS
 def sweep_params():
     # Named tuple to hold each combination of hyperparameters
     IterationData = namedtuple("IterationData", 
@@ -22,29 +23,23 @@ def sweep_params():
          "batch_size", "batch_norm", "lr"])
 
     # Define fixed values for some parameters
-    epochs = 2
+    epochs = 20
     batch_size = 512
     batch_norm = True
-    lr = 0.1
-    scales = [1]
-    projection_dimensions = [[4096, 4096, 4096]]
+    lrs = [0.1, 0.05, 0.01, 0.001, 0.0001]
+    scale = 1
+    projection_dimensions = [[4096, 4096]]
 
-    # Iterate over combinations of projection type and learnable layers
-    for projection in ["rks"]:
-        n = 8 if projection == "ff" else 1  # Number of learnable configurations based on projection type
+    for projection in ["rks", "ff"]:
+        learnable = True
+        learnable_gbs = [True, True, True]
 
-        # Generate all combinations of learnable and non-learnable settings
-        for i in range(n):
-            learnable = False if i == 0 else True
-            learnable_gbs = [bool(int(b)) for b in f"{i:03b}"]  # Generate learnable GBS configuration
-
-            # Yield combinations for each set of hyperparameters
-            for scale in scales:
-                for proj_dim in projection_dimensions:
-                    yield IterationData(projection, 
-                                        "NA" if projection == "ff" else learnable, 
-                                        "NA" if projection == "rks" else learnable_gbs, 
-                                        scale, proj_dim, epochs, batch_size, batch_norm, lr)
+        for lr in lrs:
+            for proj_dim in projection_dimensions:
+                yield IterationData(projection, 
+                                    "NA" if projection == "ff" else learnable, 
+                                    "NA" if projection == "rks" else learnable_gbs, 
+                                    scale, proj_dim, epochs, batch_size, batch_norm, lr)
 
 # Function to parse command-line arguments
 def parse_all_args():
@@ -125,7 +120,7 @@ for args in sweep_params():
     test_times_per_epoch_all_runs = []
 
     # Run the model 10 times to get accurate performance stats
-    for run in range(3):
+    for run in range(10):
         print(f"Round {run+1}:")
         # Run the neural network and get performance metrics for each run
         learnable_params, non_learnable_params, train_accuracies, test_accuracies, elapsed_times, test_times = run_NN(trainloader, testloader, moduleList, args.epochs, device, args.lr)
@@ -138,10 +133,10 @@ for args in sweep_params():
     test_times_per_epoch_all_runs.append(test_times)
 
     # Calculate the mean and std of accuracies and times across all 10 runs for each epoch
-    train_accuracy_means = [np.mean(train_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    train_accuracy_stds = [np.std(train_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    test_accuracy_means = [np.mean(test_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
-    test_accuracy_stds = [np.std(test_accuracies_per_epoch_all_runs[epoch]) for epoch in range(args.epochs)]
+    train_accuracy_means = [np.mean(train_accuracies_per_epoch_all_runs)]
+    train_accuracy_stds = [np.std(train_accuracies_per_epoch_all_runs)]
+    test_accuracy_means = [np.mean(test_accuracies_per_epoch_all_runs)]
+    test_accuracy_stds = [np.std(test_accuracies_per_epoch_all_runs)]
     elapsed_time_mean = [np.mean(elapsed_times_per_epoch_all_runs)]
     test_time_mean = [np.mean(test_times_per_epoch_all_runs)]
 
@@ -162,13 +157,16 @@ for args in sweep_params():
 
     # Other filename components
     scale_part = f"-scale={args.scale}"
-    proj_dims = f"-projdims=[{args.projection_dimensions[0]}_{args.projection_dimensions[1]}_{args.projection_dimensions[2]}]"
+    proj_dims_part = f"-projdims=["
+    for i, dim in enumerate(args.projection_dimensions):
+        proj_dims_part += f"{dim}, " if i < len(args.projection_dimensions) - 1 else f"{dim}]"
     epoch_part = f"-epochs={args.epochs}"
     batch_part = f"-batch_size={args.batch_size}"
-    batch_norm_part = f"-{'Yes' if args.batch_norm else 'No'}.pkl"
+    batch_norm_part = f"-{'Yes' if args.batch_norm else 'No'}"
+    lr_part = f"-lr={args.lr}"
 
     # Combine all parts
-    filename = base + projection_part + scale_part + proj_dims + epoch_part + batch_part + batch_norm_part
+    filename = base + projection_part + scale_part + proj_dims_part + epoch_part + batch_part + batch_norm_part + lr_part + ".pkl"
 
     # Create a dictionary to store hyperparameters and performance metrics
     hyperparams_and_performance = {
