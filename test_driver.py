@@ -26,20 +26,19 @@ def sweep_params():
     epochs = 20
     batch_size = 512
     batch_norm = True
-    lrs = [0.1, 0.05, 0.01, 0.001, 0.0001]
+    lr = 0.0001
     scale = 1
-    projection_dimensions = [[4096, 4096]]
+    projection_dimensions = [[1024, 1024], [2048, 2048], [4096, 4096], [8192, 8192], [16384, 16384]]
 
     for projection in ["rks", "ff"]:
         learnable = True
         learnable_gbs = [True, True, True]
 
-        for lr in lrs:
-            for proj_dim in projection_dimensions:
-                yield IterationData(projection, 
-                                    "NA" if projection == "ff" else learnable, 
-                                    "NA" if projection == "rks" else learnable_gbs, 
-                                    scale, proj_dim, epochs, batch_size, batch_norm, lr)
+        for proj_dim in projection_dimensions:
+            yield IterationData(projection, 
+                                "NA" if projection == "ff" else learnable, 
+                                "NA" if projection == "rks" else learnable_gbs, 
+                                scale, proj_dim, epochs, batch_size, batch_norm, lr)
 
 # Function to parse command-line arguments
 def parse_all_args():
