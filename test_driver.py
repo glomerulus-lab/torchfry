@@ -191,7 +191,7 @@ for args in sweep_params():
             "test_accuracy": test_accuracies_per_epoch_all_runs,
             "train_accuracy": train_accuracies_per_epoch_all_runs,
             "elapsed_times": elapsed_times_per_epoch_all_runs,
-            "test_times": test_accuracies_per_epoch_all_runs  # There's a typo here, it should be test_times
+            "test_times": test_accuracies_per_epoch_all_runs
         }
     }
 

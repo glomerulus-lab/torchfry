@@ -51,7 +51,7 @@ def FF_GPU_layer(x, exact, output_dims):
     x = torch.tensor(x, dtype=torch.float32, device=device)
 
     for dim in output_dims:
-        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device, hadamard='Dao')
         phi = fast_food_obj.forward(x)
 
         ff_approx = (phi @ phi.T).cpu().detach().numpy()

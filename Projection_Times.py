@@ -115,7 +115,7 @@ def FF_Layer(input_dims, num_runs=10):
         x = torch.tensor(x, dtype=torch.float32, device=device)
 
         output_dim = dim * 4
-        fast_food_obj = FastFood_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
+        fast_food_obj = FastFood_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device, hadamard='Dao')
 
         total_time = 0
         torch.cuda.synchronize()
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     scale = 20
 
     for name, proj_method in zip(proj_names, projection_methods):
-        proj_time = proj_method(input_dims, num_runs=10)
+        proj_time = proj_method(input_dims, num_runs=20)
         plt.plot(input_dims[3:], proj_time[3:], label=name, marker='o')
 
     plt.xlabel('Input Dimension')
@@ -161,4 +161,4 @@ if __name__ == '__main__':
     plt.title('Projection Times')
     plt.tight_layout()
     plt.legend(loc='best')
-    plt.savefig("time_graph.png")
+    plt.show()
