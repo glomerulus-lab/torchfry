@@ -95,11 +95,12 @@ def RKS_GPU_layer(input_dims, num_runs=10):
         rks_obj = RKS_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
 
         total_time = 0
+        torch.cuda.synchronize()
         for _ in range(num_runs):
-            start = time.time()
+            # torch.cuda.synchronize()
+            start = time.perf_counter()
             rks_obj.forward(x)
-            end = time.time()
-            total_time += (end - start)
+            total_time += (time.perf_counter()-start)
 
         avg_time = total_time / num_runs
         times.append(avg_time)
@@ -117,11 +118,12 @@ def FF_Layer(input_dims, num_runs=10):
         fast_food_obj = FastFood_Layer(input_dim=dim, output_dim=output_dim, scale=scale, device=device)
 
         total_time = 0
+        torch.cuda.synchronize()
         for _ in range(num_runs):
-            start = time.time()
+            # torch.cuda.synchronize()
+            start = time.perf_counter()
             fast_food_obj.forward(x)
-            end = time.time()
-            total_time += (end - start)
+            total_time += (time.perf_counter()-start)
 
         avg_time = total_time / num_runs
         times.append(avg_time)
@@ -159,4 +161,4 @@ if __name__ == '__main__':
     plt.title('Projection Times')
     plt.tight_layout()
     plt.legend(loc='best')
-    plt.show()
+    plt.savefig("time_graph.png")
