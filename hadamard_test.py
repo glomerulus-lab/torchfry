@@ -16,12 +16,12 @@ def pytorch_hadamard(u, normalize=False):
     return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
 
 # Set up test data
-dim = 16_384
+dim = 8_192
 batch_size = 8_192
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 dtype = torch.float32
 num_warmup = 5
-num_trials = 40
+num_trials = 100
 
 # Create random test data
 data = torch.randn(batch_size, dim, device=device, dtype=dtype)
@@ -39,32 +39,36 @@ for _ in range(num_warmup):
 
 # Test CUDA Hadamard
 cuda_times = []
+torch.cuda.synchronize()
 for _ in range(num_trials):
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
     start = time.perf_counter()
     _ = cuda_hadamard(data)
     cuda_times.append(time.perf_counter() - start)
 
 # Test PyTorch Hadamard
 pytorch_times = []
+torch.cuda.synchronize()
 for _ in range(num_trials):
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
     start = time.perf_counter()
     _ = pytorch_hadamard(data)
     pytorch_times.append(time.perf_counter() - start)
 
 # Test Scipy Hadamard (Matrix Multiplication)
 scipy_times = []
+torch.cuda.synchronize()
 for _ in range(num_trials):
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
     start = time.perf_counter()
     _ = F.linear(data, had)
     scipy_times.append(time.perf_counter() - start)
 
 # Test Gaussian Matrix Multiplication
+torch.cuda.synchronize()
 matrix_times = []
 for _ in range(num_trials):
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
     start = time.perf_counter()
     _ = data @ gaus
     matrix_times.append(time.perf_counter() - start)
@@ -72,7 +76,7 @@ for _ in range(num_trials):
 # Calculate statistics (ms)
 def calc_stats(times):
     times_ms = np.array(times) * 1000
-    return times_ms.mean(), times_ms.std()
+    return times_ms.mean(), times_ms.std() / np.sqrt(num_trials)
 
 cuda_mean, cuda_std = calc_stats(cuda_times)
 pytorch_mean, pytorch_std = calc_stats(pytorch_times)
@@ -80,10 +84,10 @@ scipy_mean, scipy_std = calc_stats(scipy_times)
 matrix_mean, matrix_std = calc_stats(matrix_times)
 
 print(f"Dao FWHT:")
-print(f"Mean time: {cuda_mean:.2f} ms ± {cuda_std:.2f} ms")
+print(f"Mean time: {cuda_mean:.2e} ms ± {cuda_std:.2e} ms")
 print(f"\nPyTorch FWHT:")
-print(f"Mean time: {pytorch_mean:.2f} ms ± {pytorch_std:.2f} ms")
+print(f"Mean time: {pytorch_mean:.2e} ms ± {pytorch_std:.2e} ms")
 print(f"\nWHT matmul:")
-print(f"Mean time: {scipy_mean:.2f} ms ± {scipy_std:.2f} ms")
+print(f"Mean time: {scipy_mean:.2e} ms ± {scipy_std:.2e} ms")
 print(f"\nMatmul:")
-print(f"Mean time: {matrix_mean:.2f} ms ± {matrix_std:.2f} ms")
+print(f"Mean time: {matrix_mean:.2e} ms ± {matrix_std:.2e} ms")

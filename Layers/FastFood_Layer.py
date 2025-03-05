@@ -1,14 +1,48 @@
 import torch
 import math
-import time
 import numpy as np 
 from torch.nn import init
 import torch.nn as nn
 from math import sqrt
 from scipy.stats import chi
-import importlib
-from fast_hadamard_transform.fast_hadamard_transform_interface import hadamard_transform
+import scipy
 
+def hadamard_transform_pytorch(u, normalize=False):
+    """
+    Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
+    n must be a power of 2.
+    Parameters:
+        u: Tensor of shape (..., n)
+        normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
+    Returns:
+        product: Tensor of shape (..., n)
+    """
+    n = u.shape[-1]
+    m = int(np.log2(n))
+    assert n == 1 << m, 'n must be a power of 2'
+    x = u[..., np.newaxis]
+    for d in range(m)[::-1]:
+        x = torch.cat((x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1)
+
+    return x.squeeze(-2) / 2**(m / 2) if normalize else x.squeeze(-2)
+
+class hadamard_transform_matmul:
+    """
+    Hadamard Transform using explicit Hadamard matrix instantiation and matrix multiplication.
+
+    Arguments
+    ----------
+    input_dim : int  
+        The dimension of the Hadamard matrix, matching the last dimension of the input matrix.  
+    device : str  
+        The device on which computations will be performed.  
+    """
+    def __init__(self, input_dim, device):
+        self.matrix = torch.tensor(scipy.linalg.hadamard(input_dim), device=device, dtype=torch.float)
+
+    def forward(self, x):
+        return x @ self.matrix
+    
 class FastFood_Layer(nn.Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
@@ -25,18 +59,20 @@ class FastFood_Layer(nn.Module):
         scale: float
             Scale factor for normalization
         learn_S: boolean    return np.concatenate([x_even + x_odd, x_even - x_odd])
-
             If S matrix is to be learnable
         learn_G: boolean
             If G matrix is to be learnable
-        learn_B: boolean
+        learn_B: booleanself.hadamard_matrix = torch.tensor(scipy.linalg.hadamard(input_dim), device=device, dtype=torch.int)
             If B matrix is to be learnable
         device: string
-            Device for operations
+            The device on which computations will be performed
         nonlinearity: boolean
             If internal nonlinearity is used, or defered
+        hadamard: string
+            Type of hadamard function desired, Dao, Recursive FWHT, or matrix mul. ("Dao", "Matmul", "Torch")
     """
-    def __init__(self, input_dim, output_dim, scale, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True):
+
+    def __init__(self, input_dim, output_dim, scale=1, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True, hadamard=None):
         super(FastFood_Layer, self).__init__()
 
         # Initialize parameters for Fastfood function
@@ -53,6 +89,24 @@ class FastFood_Layer(nn.Module):
         self.B = None 
         self.G = None
         self.S = None
+
+        # Dependancy of Dao-AILab fast-hadamard-transform
+        if hadamard == "Dao":
+            try:
+                from fast_hadamard_transform import hadamard_transform
+                self._hadamard = hadamard_transform
+            except ImportError:
+                print("Dao Hadamard not available, falling back to PyTorch hadamard function")
+                self._hadamard = hadamard_transform_pytorch
+
+        # Implicit hadamard matrix instantiation
+        elif hadamard == "Matmul":
+            matmul_hadamard = hadamard_transform_matmul(input_dim=self.input_dim, device=device)
+            self._hadamard = matmul_hadamard.forward
+
+        # Fallback, PyTorch Hadamard function    
+        else:
+            self._hadamard = hadamard_transform_pytorch
 
         # Sample required matrices
         self.new_feature_map(torch.float32)
@@ -115,14 +169,14 @@ class FastFood_Layer(nn.Module):
         """
         x = x.view(-1, 1, self.input_dim)                                # Reshape to [x, 1, input_dim]
         Bx = x * self.B                                                  # Apply binary scaling, broadcast over 2nd dim to [x, m, input_dim]
-        HBx = hadamard_transform(Bx)                                     # Hadamard transform over last dim
+        HBx = self._hadamard(Bx)                                         # Hadamard transform over last dim
         index = self.P.unsqueeze(0).expand(HBx.size(0), -1, -1)          # Add additional dim to Permute, and match size to HBx
         PHBx = HBx.gather(-1, index)                                     # Permute HBx using P on final dim of HBx
         PHBx.mul_(self.G)                                                # Apply Gaussian scaling, element wise mult, no broadcast
-        HGPHBx = hadamard_transform(PHBx)                                # Hadamard transform over last dim
+        HGPHBx = self._hadamard(PHBx)                                    # Hadamard transform over last dim
         SHGPHBx = HGPHBx * self.S                                        # Final scaling, element wise mult, no broadcast
         norm_factor = (1.0 / (self.scale*sqrt(self.input_dim)))          # Norm factor based on input_dim
-        Vx = SHGPHBx.view(-1, self.m * self.input_dim).mul_(norm_factor)  # Norm factor applied, reshape into [x, m * input_dim]
+        Vx = SHGPHBx.view(-1, self.m * self.input_dim).mul_(norm_factor) # Norm factor applied, reshape into [x, m * input_dim]
         result = Vx[..., :self.output_dim]                               # Trim to exact [x, m * input_dim]
         if self.nonlinearity:                                            # If desired internal nonlinearity
             result = self.phi(result)                                    # Nonlinearity
