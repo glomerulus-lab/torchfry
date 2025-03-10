@@ -10,6 +10,7 @@ import pickle
 import os
 from collections import namedtuple
 import numpy as np
+import time
 
 # Set device to CUDA if available, else fall back to CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,7 +29,8 @@ def sweep_params():
     batch_norm = True
     lr = 0.0001
     scale = 1
-    projection_dimensions = [[1024, 1024], [2048, 2048], [4096, 4096], [8192, 8192], [16384, 16384]]
+    # projection_dimensions = [[1024, 1024], [2048, 2048], [4096, 4096], [8192, 8192], [16384, 16384]]
+    projection_dimensions = [[128, 128], [256, 256]]
 
     for projection in ["rks", "ff"]:
         learnable = True
@@ -115,35 +117,34 @@ for args in sweep_params():
     # Initialize lists to store metrics per epoch for all runs
     train_accuracies_per_epoch_all_runs = []
     test_accuracies_per_epoch_all_runs = []
-    elapsed_times_per_epoch_all_runs = []
-    test_times_per_epoch_all_runs = []
+    elapsed_time_all_runs = []
+    train_times_per_epoch_all_runs = []
+    forward_pass_times_per_epoch_all_runs = []
 
     # Run the model 10 times to get accurate performance stats
     for run in range(10):
         print(f"Round {run+1}:")
         # Run the neural network and get performance metrics for each run
-        learnable_params, non_learnable_params, train_accuracies, test_accuracies, elapsed_times, test_times = run_NN(trainloader, testloader, moduleList, args.epochs, device, args.lr)
+        learnable_params, non_learnable_params, train_accuracies, test_accuracies, elapsed_time, train_times, forward_pass_times = run_NN(trainloader, testloader, moduleList, args.epochs, device, args.lr)
 
         # Store the accuracies and times for each epoch in the current run
         train_accuracies_per_epoch_all_runs.append(train_accuracies)
         test_accuracies_per_epoch_all_runs.append(test_accuracies)
-        
-    elapsed_times_per_epoch_all_runs.append(elapsed_times)
-    test_times_per_epoch_all_runs.append(test_times)
+        elapsed_time_all_runs.append(elapsed_time)
+        train_times_per_epoch_all_runs.append(train_times)
+        forward_pass_times_per_epoch_all_runs.append(forward_pass_times)
 
     # Calculate the mean and std of accuracies and times across all 10 runs for each epoch
     train_accuracy_means = [np.mean(train_accuracies_per_epoch_all_runs)]
     train_accuracy_stds = [np.std(train_accuracies_per_epoch_all_runs)]
     test_accuracy_means = [np.mean(test_accuracies_per_epoch_all_runs)]
     test_accuracy_stds = [np.std(test_accuracies_per_epoch_all_runs)]
-    elapsed_time_mean = [np.mean(elapsed_times_per_epoch_all_runs)]
-    test_time_mean = [np.mean(test_times_per_epoch_all_runs)]
 
     # Ensure directory exists to save performance metrics
-    os.makedirs("testing_performance", exist_ok=True)
+    os.makedirs("small_fry_experiment", exist_ok=True)
 
     # Build parts of the filename separately
-    base = f"testing_performance/{args.projection}"
+    base = f"small_fry_experiment/{args.projection}"
 
     # Handle projection-specific parts
     if args.projection == 'rks':
@@ -184,14 +185,13 @@ for args in sweep_params():
             "non_learnable_params": non_learnable_params,
             "train_accuracy_means": train_accuracy_means,
             "test_accuracy_means": test_accuracy_means,
-            "elapsed_time_means": elapsed_time_mean,
-            "test_time_means": test_time_mean,
             "train_accuracy_stds": train_accuracy_stds,
             "test_accuracy_stds": test_accuracy_stds,
             "test_accuracy": test_accuracies_per_epoch_all_runs,
             "train_accuracy": train_accuracies_per_epoch_all_runs,
-            "elapsed_times": elapsed_times_per_epoch_all_runs,
-            "test_times": test_accuracies_per_epoch_all_runs
+            "elapsed_times": elapsed_time_all_runs,
+            "train_times": train_times_per_epoch_all_runs,
+            "forward_pass_times": forward_pass_times_per_epoch_all_runs,
         }
     }
 

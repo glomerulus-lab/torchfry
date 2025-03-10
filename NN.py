@@ -31,8 +31,9 @@ def count_params(model):
 
 def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
 
-    training_time = time.time()
+    start_time = time.time()
     train_accuracy, test_accuracy = [], []
+    train_times, forward_pass_times = [], []
 
     model = NeuralNetwork(layers).to(device)
     criterion = nn.CrossEntropyLoss()
@@ -40,6 +41,7 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
 
     # Train the network
     for epoch in range(epochs):
+        epoch_time = time.time()
         model.train()
 
         for images, labels in trainloader:
@@ -56,6 +58,7 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
 
             loss.backward()
             optimizer.step()
+        train_times.append(time.time() - epoch_time)
 
         # Evaluate the model
         model.eval()
@@ -73,18 +76,22 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
             train_accuracy.append(100 * correct / total)
 
             # Test accuracy & time
-            test_start = time.time()
             correct, total = 0, 0
+            testing_time_start = time.time()
             for images, labels in testloader:
                 images = images.view(images.size(0), -1).to(device)
                 labels = labels.to(device)
 
+                # Time the model forward pass
+                test_start = time.time()
                 outputs = model(images)
+                forward_pass_times.append(time.time() - test_start)
+
                 _, predicted = torch.max(outputs, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
             test_accuracy.append(100 * correct / total)
-            test_time = time.time() - test_start
+            test_time = time.time() - testing_time_start
         print(f"Epoch [{epoch+1}/{epochs}], Test Accuracy: {test_accuracy[-1]:.2f}%, Forward pass time: {test_time:.2f} seconds")
 
 
@@ -92,10 +99,10 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
     learnable_params, non_learnable_params = count_params(model)
 
     # Timing of training across all epochs
-    elapsed_time = time.time() - training_time
+    elapsed_time = time.time() - start_time
     print(f"Training completed in: {elapsed_time:.2f} seconds\n")
 
-    return learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, test_time
+    return learnable_params, non_learnable_params, train_accuracy, test_accuracy, elapsed_time, train_times, forward_pass_times
 
     
 

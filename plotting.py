@@ -87,6 +87,12 @@ def load_pickle_files(directory):
             file_path = os.path.join(directory, filename)
             with open(file_path, "rb") as f:
                 data = pickle.load(f)
+                for key, val in data['performance'].items():
+                    print(key)
+                    print(val)
+                    print()
+                    print()
+                exit()
                 matrix = np.array(data['performance']['test_accuracy']).T
 
                 # use seaborn to compute a non-parametric CI for each epoch
@@ -98,6 +104,7 @@ def load_pickle_files(directory):
                 CI = np.array(CI)
                 plotting_CI.append(CI)
     return np.array(plotting_CI), names
+
 
 def CI_plots(matrix, names, outfile= "figure.png"):
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
@@ -130,4 +137,4 @@ if __name__ == "__main__":
 
     for dir in subdirs:
         foo, names = load_pickle_files(dir)
-        CI_plots(foo, names, outfile= dir + "plot.png")
+        CI_plots(foo, names, outfile= dir + "_plot.png")
