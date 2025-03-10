@@ -38,7 +38,7 @@ class hadamard_transform_matmul:
         The device on which computations will be performed.  
     """
     def __init__(self, input_dim, device):
-        self.matrix = torch.tensor(scipy.linalg.hadamard(input_dim), device=device, dtype=torch.float)
+        self.matrix = nn.Parameter(torch.tensor(scipy.linalg.hadamard(input_dim), device=device, dtype=torch.float), requires_grad=False)
 
     def forward(self, x):
         return x @ self.matrix
