@@ -35,6 +35,10 @@ def run_NN(trainloader, testloader, layers: nn.ModuleList, epochs, device, lr):
     train_accuracy, test_accuracy = [], []
     train_times, forward_pass_times = [], []
 
+    for layer in layers:
+        if hasattr(layer, 'reset_parameters'):
+            layer.reset_parameters()
+
     model = NeuralNetwork(layers).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr)
