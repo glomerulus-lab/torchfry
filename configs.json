@@ -1,0 +1,32 @@
+[
+    {
+        "layer": "FastFood_Layer",
+        "scale": 0.1,
+        "learn_S": false,
+        "learn_G": false,
+        "learn_B": false,
+        "nonlinearity": false,
+        "hadamard": "Dao"
+    },
+    {
+        "layer": "FastFood_Layer",
+        "scale": 0.1,
+        "learn_S": true,
+        "learn_G": true,
+        "learn_B": true,
+        "nonlinearity": false,
+        "hadamard": "Dao"
+    },
+    {
+        "layer": "RKS_Layer",
+        "scale": 0.1,
+        "learn_G": false,
+        "nonlinearity": false
+    },
+    {
+        "layer": "RKS_Layer",
+        "scale": 0.1,
+        "learn_G": true,
+        "nonlinearity": false
+    }
+]

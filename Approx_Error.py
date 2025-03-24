@@ -10,8 +10,6 @@ from Layers.RKS_Layer import RKS_Layer
 import torch
 from Layers.FastFood_Layer import FastFood_Layer
 
-
-
 def exact_rbf_kernel(x, exact, output_dims):
     #rks error
     error = []
