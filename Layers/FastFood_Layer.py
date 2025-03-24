@@ -196,14 +196,12 @@ class FastFood_Layer(nn.Module):
         U = 2 * torch.pi * torch.rand(self.output_dim, device=self.device)
 
         # Add the uniform distribution to x
-        # Out of place: x = x + u
         x.add_(U)
 
-        # Apply the cosine function to x, adding U for randomness
+        # Apply the cosine function to x
         torch.cos_(x)
 
         # Normalization
-        # Out of place: x = x * math.sqrt(2.0 / self.output_dim)
         x.mul_(math.sqrt(2.0 / self.output_dim))
 
         return x
