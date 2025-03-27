@@ -34,11 +34,7 @@ def parse_all_args():
     """
     parser = argparse.ArgumentParser(description="Run experiments based on configurations in .json file")
     parser.add_argument('--config', type=str, help="Desired config to run (ex: configs.json)")
-    parser.add_argument('--filename', type=str, help="Filename for saving results of the run (ex: results.json)", default="test")
-    parser.add_argument('--lr', type=float, help="Learning rate", default=0.0001)
-    parser.add_argument('--mb', type=int, help="Minibatch size", default=512)
-    parser.add_argument('--epochs', type=int, help="Number of training epochs", default=20)
-    parser.add_argument('--trials', type=int, help="Number of trials per configuration set", default=10)
+    parser.add_argument('--filename', type=str, help="Filename for saving results of the run (ex: results.json)")
     return parser.parse_args()
 
 
@@ -55,17 +51,6 @@ args = parse_all_args()
 with open(args.config, "r") as f:
     sweep = json.load(f)
 
-# Define data transformations and load datasets
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,)),
-    transforms.Pad(2, padding_mode="edge")
-])
-trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
-testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.mb, shuffle=True)
-testloader = torch.utils.data.DataLoader(testset, batch_size=args.mb, shuffle=False)
-
 # Initialize a list to store all experiment results
 all_results = []
 
@@ -76,23 +61,44 @@ for config in sweep:
     projection = layer_map[layer_name]
     config["device"] = str(device)
 
+    # Backup the original config before popping
+    original_config = config.copy()
+
+    # Define data transformations and load datasets
+    transform = transforms.Compose([ 
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,)),
+        transforms.Pad(2, padding_mode="edge")
+    ])
+    trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+    testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
+
     # Initialize a dictionary to store results for the current configuration
     results = {
         "Projection Layer": layer_name,
-        "Projection Arguments": config,
+        "Projection Arguments": original_config,
         "Train Accuracies": [],
         "Test Accuracies": [],
         "Elapsed Time": [],
         "Train Times Per Epoch": [],
         "Forward Pass Times": [],
         "Learnable Params": 0,
-        "Non-Learnable Params": 0
+        "Non-Learnable Params": 0,
     }
 
+    # Extract and remove arguments that shouldn't be passed into the model
+    lr = config.pop("lr")
+    mb = config.pop("mb")
+    trials = config.pop("trials")
+    epochs = config.pop("epochs")
+    widths = config.pop("widths")
+
     # Conduct multiple trials for the current configuration
-    for _ in range(args.trials):
+    for _ in range(trials):
         # Initialize the model with specified parameters
-        model = MLP(input_dim=1024, classes=10, widths=[8192, 8192, 8192], layer=projection, proj_args=config)
+        model = MLP(input_dim=1024, classes=10, widths=widths, layer=projection, proj_args=config)
         model.to(device)
 
         # Initialize lists to store metrics for each epoch
@@ -101,13 +107,13 @@ for config in sweep:
 
         # Define the loss function and optimizer
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), args.lr)
+        optimizer = optim.Adam(model.parameters(), lr=lr)
 
         # Record the start time of the training process
         start_time = time.time()
 
         # Training loop over the specified number of epochs
-        for epoch in range(args.epochs):
+        for epoch in range(epochs):
             epoch_time = time.time()
             model.train()
             for images, labels in trainloader:
