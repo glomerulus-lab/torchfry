@@ -1,12 +1,12 @@
 [
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 1024,
         "learn_S": false,
         "learn_G": false,
         "learn_B": false,
@@ -14,13 +14,13 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 1024,
         "learn_S": true,
         "learn_G": true,
         "learn_B": true,
@@ -28,35 +28,35 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 1024,
         "learn_G": false,
         "nonlinearity": false
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 1024,
         "learn_G": true,
         "nonlinearity": false
     },
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 2048,
         "learn_S": false,
         "learn_G": false,
         "learn_B": false,
@@ -64,13 +64,13 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 2048,
         "learn_S": true,
         "learn_G": true,
         "learn_B": true,
@@ -78,24 +78,24 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 2048,
         "learn_G": false,
         "nonlinearity": false
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
         "epochs": 20,
         "trials": 10,
-        "features": 4096,
+        "features": 2048,
         "learn_G": true,
         "nonlinearity": false
     }

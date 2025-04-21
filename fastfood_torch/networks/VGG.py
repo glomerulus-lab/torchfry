@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-from Layers.FastFood_Layer import FastFood_Layer
-from Layers.RKS_Layer import RKS_Layer
+from fastfood_torch.transforms import FastFoodLayer, RKSLayer
 
-class VGG11(nn.Module):
+class VGG(nn.Module):
     """
     Customized VGG11 model with a projection layer and batch normalization.
     Args:
@@ -15,8 +14,8 @@ class VGG11(nn.Module):
         proj_args (dict): Arguments to pass into the projection layer
     """
     
-    def __init__(self, input_shape=(3, 32, 32), projection_layer=FastFood_Layer, features=4096, classes=10, proj_args={}):
-        super(VGG11, self).__init__()
+    def __init__(self, input_shape=(3, 32, 32), projection_layer=FastFoodLayer, features=4096, classes=10, proj_args={}):
+        super(VGG, self).__init__()
 
         # Load VGG11 and replace the first layer for custom input channels
         self.vgg = models.vgg11_bn(weights=None)

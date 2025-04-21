@@ -1,6 +1,6 @@
 [
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.001,
         "mb": 512,
@@ -14,7 +14,7 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
@@ -28,7 +28,7 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "FastFood_Layer",
+        "layer": "FastFoodLayer",
         "scale": 0.1,
         "lr": 0.0005,
         "mb": 512,
@@ -42,7 +42,7 @@
         "hadamard": "Dao"
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.001,
         "mb": 512,
@@ -53,7 +53,7 @@
         "nonlinearity": false
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.0001,
         "mb": 512,
@@ -64,7 +64,7 @@
         "nonlinearity": false
     },
     {
-        "layer": "RKS_Layer",
+        "layer": "RKSLayer",
         "scale": 0.1,
         "lr": 0.0005,
         "mb": 512,

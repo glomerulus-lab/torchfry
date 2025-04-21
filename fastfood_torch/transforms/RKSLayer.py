@@ -1,11 +1,8 @@
 import torch
 import math
-import numpy as np
-from torch.nn import init
 import torch.nn as nn
-from math import sqrt
 
-class RKS_Layer(nn.Module):
+class RKSLayer(nn.Module):
     """
     Layer that stacks multiple Fastfood transformations to project input 
     features into a higher dimensional space.
@@ -19,7 +16,7 @@ class RKS_Layer(nn.Module):
         device (torch.device, optional): The device on which to allocate the parameters.
     """
     def __init__(self, input_dim, output_dim, scale, learn_G=False, device=None, nonlinearity=True):
-        super(RKS_Layer, self).__init__()
+        super(RKSLayer, self).__init__()
 
         self.input_dim = input_dim       # Data input dimension
         self.scale = scale               # Non linearity requirement

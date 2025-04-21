@@ -1,14 +1,9 @@
+import torch
 import numpy as np
-import sklearn as sc
 import matplotlib.pyplot as plt
-from sklearn.datasets import fetch_openml
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.kernel_approximation import RBFSampler
-from sklearn_extra.kernel_approximation import Fastfood
-from Layers.RKS_Layer import RKS_Layer
-import torch
-from Layers.FastFood_Layer import FastFood_Layer
+from fastfood_torch.transforms import FastFoodLayer, RKSLayer
 
 def exact_rbf_kernel(x, exact, output_dims):
     #rks error
@@ -32,7 +27,7 @@ def RKS_GPU_layer(x, exact, output_dims):
     x = torch.tensor(x, dtype=torch.float32, device=device)
 
     for dim in output_dims:
-        rks_obj = RKS_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
+        rks_obj = RKSLayer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device)
         phi = rks_obj.forward(x)
 
         rks_approx = (phi @ phi.T).cpu().detach().numpy()
@@ -49,7 +44,7 @@ def FF_GPU_layer(x, exact, output_dims):
     x = torch.tensor(x, dtype=torch.float32, device=device)
 
     for dim in output_dims:
-        fast_food_obj = FastFood_Layer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device, hadamard='Dao')
+        fast_food_obj = FastFoodLayer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device, hadamard='Dao')
         phi = fast_food_obj.forward(x)
 
         ff_approx = (phi @ phi.T).cpu().detach().numpy()

@@ -1,11 +1,10 @@
 import torch
-import math
-import numpy as np 
-from torch.nn import init
 import torch.nn as nn
-from math import sqrt
-from scipy.stats import chi
+from torch.nn import init
 import scipy
+from scipy.stats import chi
+import numpy as np 
+import math
 
 def hadamard_transform_pytorch(u, normalize=False):
     """
@@ -43,7 +42,7 @@ class hadamard_transform_matmul:
     def forward(self, x):
         return x @ self.matrix
     
-class FastFood_Layer(nn.Module):
+class FastFoodLayer(nn.Module):
     """
     Random Fastfood features for the RBF kernel according to [1].
 
@@ -73,7 +72,7 @@ class FastFood_Layer(nn.Module):
     """
 
     def __init__(self, input_dim, output_dim, scale=1, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True, hadamard=None):
-        super(FastFood_Layer, self).__init__()
+        super(FastFoodLayer, self).__init__()
 
         # Initialize parameters for Fastfood function
         self.m = math.ceil(output_dim / input_dim)
@@ -145,7 +144,7 @@ class FastFood_Layer(nn.Module):
         # Learnable S Matrix
         if self.learn_S:
             self.S = nn.Parameter(torch.empty(self.m, self.input_dim, device=device))
-            init.normal_(self.S, mean=sqrt(self.input_dim), std=sqrt(self.input_dim))
+            init.normal_(self.S, mean=math.sqrt(self.input_dim), std=math.sqrt(self.input_dim))
         # Non Learnable S
         else:
             self.S = nn.Parameter(torch.tensor(chi.rvs(df=self.input_dim, size=(self.m, self.input_dim)), dtype=dtype, device=device), requires_grad=False)
@@ -175,7 +174,7 @@ class FastFood_Layer(nn.Module):
         PHBx.mul_(self.G)                                                # Apply Gaussian scaling, element wise mult, no broadcast
         HGPHBx = self._hadamard(PHBx)                                    # Hadamard transform over last dim
         SHGPHBx = HGPHBx * self.S                                        # Final scaling, element wise mult, no broadcast
-        norm_factor = (1.0 / (self.scale*sqrt(self.input_dim)))          # Norm factor based on input_dim
+        norm_factor = (1.0 / (self.scale*math.sqrt(self.input_dim)))          # Norm factor based on input_dim
         Vx = SHGPHBx.view(-1, self.m * self.input_dim).mul_(norm_factor) # Norm factor applied, reshape into [x, m * input_dim]
         result = Vx[..., :self.output_dim]                               # Trim to exact [x, m * input_dim]
         if self.nonlinearity:                                            # If desired internal nonlinearity

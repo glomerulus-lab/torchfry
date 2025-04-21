@@ -3,12 +3,11 @@ import torch
 import argparse
 import os
 from torchvision import datasets, transforms
-from LeNet import LeNet
 import torch.nn as nn
 import torch.optim as optim
 import time
-from Layers.FastFood_Layer import FastFood_Layer
-from Layers.RKS_Layer import RKS_Layer
+from fastfood_torch.networks import VGG
+from fastfood_torch.transforms import FastFoodLayer, RKSLayer
 
 # Determine the device to be used for computation (GPU if available, else CPU)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -39,8 +38,8 @@ def parse_all_args():
 
 # Mapping of layer names to their corresponding classes 
 layer_map = {
-    "FastFood_Layer": FastFood_Layer,
-    "RKS_Layer": RKS_Layer
+    "FastFoodLayer": FastFoodLayer,
+    "RKSLayer": RKSLayer
 }
 
 # Parse command-line arguments
@@ -55,6 +54,8 @@ all_results = []
 
 # Iterate over each configuration in the sweep
 for config in sweep:
+    print(config)
+    
     # Extract the layer name and retrieve the corresponding class
     layer_name = config.pop("layer")
     projection = layer_map[layer_name]
@@ -64,13 +65,14 @@ for config in sweep:
     original_config = config.copy()
 
     # Define data transformations and load datasets
-    transform = transforms.Compose([ 
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,)),
-        # transforms.Pad(2, padding_mode="edge")
+    transform = transforms.Compose([
+    transforms.Pad(padding=2),             
+    transforms.Resize((64, 64)),            
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
     ])
-    trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+    testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
     testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
 
@@ -96,10 +98,14 @@ for config in sweep:
 
     # Conduct multiple trials for the current configuration
     for _ in range(trials):
+        print(f"Trial {_}:")
+        
         # Initialize the model with specified parameters
-        model = LeNet(
+        model = VGG(
             projection_layer=projection,
+            input_shape=(1, 64, 64),
             features=features,
+            classes=10,
             proj_args=config)
         model.to(device)
 
@@ -159,6 +165,7 @@ for config in sweep:
                     correct += (predicted == labels).sum().item()
                 test_accuracy.append(100 * correct / total)
                 forward_pass_times.append(forward_pass_time / len(testloader))
+                print(f"Epoch {epoch}: Accuracy of {test_accuracy[epoch]:.2f}%, forward pass time of {forward_pass_times[epoch]:.2f}.")
 
         # Calculate the total elapsed time for the current trial
         elapsed_time = time.time() - start_time
@@ -179,11 +186,11 @@ for config in sweep:
     all_results.append(results)
     
 # Check for dir existence
-if not os.path.exists("Results"):
-    os.makedirs("Results")
+if not os.path.exists("results"):
+    os.makedirs("results")
 
 # Save all experiment results to a JSON file
-with open(os.path.join("Results", f"{args.filename}"), "w") as f:
+with open(os.path.join("results", f"{args.filename}"), "w") as f:
     json.dump(all_results, f, indent=4)
 
 print(f"Runs complete, saved to {args.filename}")

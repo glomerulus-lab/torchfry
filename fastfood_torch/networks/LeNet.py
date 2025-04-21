@@ -1,16 +1,14 @@
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from Layers.FastFood_Layer import FastFood_Layer
-from Layers.RKS_Layer import RKS_Layer
+from fastfood_torch.transforms import FastFoodLayer, RKSLayer
 
 class LeNet(nn.Module):
-    def __init__(self, projection_layer=FastFood_Layer, features=1024, proj_args={}):
+    def __init__(self, projection_layer=FastFoodLayer, features=1024, proj_args={}):
         """
         Initialize a LeNet model similar to DeepFriedLeNet.
         
         Args:
-            projection_layer: The layer type to use (FastFood_Layer or RKS_Layer)
+            projection_layer: The layer type to use (FastFoodLayer or RKSLayer)
             features: Number of features for the projection layer
             proj_args: Additional arguments to pass to the projection layer
         """
