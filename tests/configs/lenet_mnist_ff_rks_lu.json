@@ -1,0 +1,102 @@
+[
+    {
+        "layer": "FastFoodLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 1024,
+        "learn_S": false,
+        "learn_G": false,
+        "learn_B": false,
+        "nonlinearity": false,
+        "hadamard": "Dao"
+    },
+    {
+        "layer": "FastFoodLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 1024,
+        "learn_S": true,
+        "learn_G": true,
+        "learn_B": true,
+        "nonlinearity": false,
+        "hadamard": "Dao"
+    },
+    {
+        "layer": "RKSLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 1024,
+        "learn_G": false,
+        "nonlinearity": false
+    },
+    {
+        "layer": "RKSLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 1024,
+        "learn_G": true,
+        "nonlinearity": false
+    },
+    {
+        "layer": "FastFoodLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 2048,
+        "learn_S": false,
+        "learn_G": false,
+        "learn_B": false,
+        "nonlinearity": false,
+        "hadamard": "Dao"
+    },
+    {
+        "layer": "FastFoodLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 2048,
+        "learn_S": true,
+        "learn_G": true,
+        "learn_B": true,
+        "nonlinearity": false,
+        "hadamard": "Dao"
+    },
+    {
+        "layer": "RKSLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 2048,
+        "learn_G": false,
+        "nonlinearity": false
+    },
+    {
+        "layer": "RKSLayer",
+        "scale": 0.1,
+        "lr": 0.0001,
+        "mb": 512,
+        "epochs": 20,
+        "trials": 10,
+        "features": 2048,
+        "learn_G": true,
+        "nonlinearity": false
+    }
+]
