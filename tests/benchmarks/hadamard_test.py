@@ -1,3 +1,26 @@
+"""
+Benchmarking Hadamard Transform Implementations
+
+This script compares the runtime and correctness of different implementations of the Hadamard Transform.
+It benchmarks:
+- A CUDA-accelerated Hadamard (from `fast_hadamard_transform`)
+- A recursive PyTorch-based Hadamard
+- A matrix-multiplication-based Walsh-Hadamard Transform using SciPy
+- A dense Gaussian matrix multiplication as an exact baseline
+
+Usage:
+-----
+The script initializes random input data, runs each method over multiple trials with GPU synchronization,
+and reports the average runtime with standard error. It also compares equality of the outputs.
+
+Adjust `dim`, `batch_size`, `num_trials`, and `num_warmup` to configure the benchmarking.
+
+Run:
+----
+$ python test/benchmarks/hadamard_test.py
+"""
+
+
 import torch
 import numpy as np
 import time

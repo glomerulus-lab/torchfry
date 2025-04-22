@@ -1,3 +1,37 @@
+
+"""
+Benchmarking Approximation Error for Fastfood and Random Kitchen Sink Methods
+
+This script compares the approximation error of different random feature map methods—
+namely Random Kitchen Sinks (RKS) and Fastfood transforms—against the exact RBF kernel.
+The benchmark evaluates the kernel approximation error of our implemented Fastfood
+and Random Kitchen Sink layers against the exact RBF kernel. Error should be 
+independent of computer architecture and choice of CPU or GPU.
+
+Functions:
+---------
+- exact_rbf_kernel(x, exact, output_dims): 
+    Computes the approximation error of scikit-learn's RBFSampler (CPU) against the exact RBF kernel.
+
+- RKS_GPU_layer(x, exact, output_dims): 
+    Computes the approximation error of this repo's Random Kitchen Sink layer (GPU) using fastfood-torch.
+
+- FF_GPU_layer(x, exact, output_dims): 
+    Computes the approximation error of this repo's Fastfood layer (GPU) using fastfood-torch.
+
+Usage:
+-----
+The script generates two plots:
+1. A linear-scale plot of approximation error vs. output dimension.
+2. A log-log scale version of the same plot.
+
+Adjust `input_dim`, `output_dims`, `scale`, or `num_data` to explore different benchmark configurations.
+
+Run:
+----
+$ python tests/benchmarks/approximation_error.py
+"""
+
 import torch
 import numpy as np
 import matplotlib.pyplot as plt

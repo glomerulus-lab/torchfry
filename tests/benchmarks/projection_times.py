@@ -1,8 +1,42 @@
+"""
+Benchmarking Projection Times for Fastfood and Random Kitchen Sink Methods
+
+This script compares the speed of our random feature map methods,
+such as Random Kitchen Sinks (RKS) and Fastfood transforms, across varying input dimensions.
+It includes both CPU and GPU-based implementations using scikit-learn, scikit-learn-extra,
+and fastfood-torch. The results are visualized as log-scaled runtime plots.
+
+Functions:
+---------
+- exact_rbf_sampler(input_dims, num_runs=10): 
+    Measures the average runtime of scikit-learn's RBFSampler on CPU.
+    
+- other_RKS(input_dims, num_runs=10): 
+    Benchmarks a custom RKSLayer implementation (CPU).
+
+- sklearn_ff(input_dims, num_runs=10): 
+    Tests the scikit-learn-extra Fastfood implementation (CPU), timing internal operations.
+
+- RKS_GPU_layer(input_dims, num_runs=10): 
+    Evaluates the GPU performance of this repo's Random Kitchen Sink layer
+
+- FF_Layer(input_dims, num_runs=10): 
+    Evaluates the GPU performance of this repo's Fastfood layer
+
+Usage:
+-----
+Adjust the `proj_names` and `projection_methods` lists to include the projection methods
+you want to benchmark. The benchmark runs each method over a list of input feature dimensions 
+(from 128 to 8192) and plots average transformation time over multiple runs.
+
+Run:
+----
+$ python tests/benchmarks/projection_times.py
+"""
+
+
 import numpy as np
-import sklearn as sc
-# from FastFood_BaseLine.random_projections import projections
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
 from fastfood_torch.transforms import FastFoodLayer, RKSLayer
@@ -34,7 +68,7 @@ def other_RKS(input_dims, num_runs=10):
     for dim in input_dims:
         x = np.random.rand(4096, dim)
         output_dim = dim * 4
-        rks = projections.rks(output_dim, scale)
+        rks = RKSLayer(output_dim, scale)
         rks.fit(x)
 
         total_time = 0
@@ -114,7 +148,7 @@ def FF_Layer(input_dims, num_runs=10):
         x = torch.tensor(x, dtype=torch.float32, device=device)
 
         output_dim = dim * 4
-        fast_food_obj = FastFoodLayer(input_dim=dim, output_dim=output_dim, scale=scale, device=device, hadamard='Dao')
+        fast_food_obj = FastFoodLayer(input_dim=dim, output_dim=output_dim, scale=scale, device=device, hadamard='Torch')
 
         total_time = 0
         torch.cuda.synchronize()
@@ -134,14 +168,14 @@ if __name__ == '__main__':
         # "Exact RBF Kernel (CPU)",
         # "Random Kitchen Sink (CPU)",
         # "Sklearn Fastfood (CPU)",
-        "Random Kitchen Sink (GPU)",
+        # "Random Kitchen Sink (GPU)",
         "Fastfood (GPU)"
     ]
     projection_methods = [
         # exact_rbf_sampler,
         # other_RKS,
         # sklearn_ff,
-        RKS_GPU_layer,
+        # RKS_GPU_layer,
         FF_Layer,
     ]
 
