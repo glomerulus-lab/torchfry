@@ -66,13 +66,13 @@ for config in sweep:
 
     # Define data transformations and load datasets
     transform = transforms.Compose([
-    transforms.Pad(padding=2),             
-    transforms.Resize((64, 64)),            
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225])
     ])
-    trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
-    testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+    testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
     testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
 
@@ -103,7 +103,7 @@ for config in sweep:
         # Initialize the model with specified parameters
         model = VGG(
             projection_layer=projection,
-            input_shape=(1, 64, 64),
+            input_shape=(3, 224, 224),
             features=features,
             classes=10,
             proj_args=config)
@@ -115,7 +115,8 @@ for config in sweep:
 
         # Define the loss function and optimizer
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)
+
 
         # Record the start time of the training process
         start_time = time.time()
@@ -136,6 +137,8 @@ for config in sweep:
 
             # Record the time taken for the current epoch
             train_times.append(time.time() - epoch_time)
+            
+            print(f"Epoch {epoch} Loss: {loss.item():.4f}")
 
             # Evaluation phase
             model.eval()
@@ -164,8 +167,10 @@ for config in sweep:
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
                 test_accuracy.append(100 * correct / total)
+
+                
                 forward_pass_times.append(forward_pass_time / len(testloader))
-                print(f"Epoch {epoch}: Accuracy of {test_accuracy[epoch]:.2f}%, forward pass time of {forward_pass_times[epoch]:.2f}.")
+                print(f"Epoch {epoch}: Train Accuracy = {train_accuracy[epoch]:.2f}%, Test Accuracy = {test_accuracy[epoch]:.2f}%")
 
         # Calculate the total elapsed time for the current trial
         elapsed_time = time.time() - start_time
