@@ -35,8 +35,7 @@ def parse_all_args():
     parser.add_argument('--filename', type=str, help="Filename for saving results of the run (ex: results.json)")
     return parser.parse_args()
 
-
-# Mapping of layer names to their corresponding classes 
+# Mapping of layer names to their corresponding classes
 layer_map = {
     "FastFoodLayer": FastFoodLayer,
     "RKSLayer": RKSLayer
@@ -55,7 +54,7 @@ all_results = []
 # Iterate over each configuration in the sweep
 for config in sweep:
     print(config)
-    
+
     # Extract the layer name and retrieve the corresponding class
     layer_name = config.pop("layer")
     projection = layer_map[layer_name]
@@ -66,10 +65,9 @@ for config in sweep:
 
     # Define data transformations and load datasets
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                             std=[0.247, 0.243, 0.261]),
     ])
     trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
     testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
@@ -97,16 +95,17 @@ for config in sweep:
     features = config.pop("features")
 
     # Conduct multiple trials for the current configuration
-    for _ in range(trials):
-        print(f"Trial {_}:")
-        
+    for trial in range(trials):
+        print(f"Trial {trial}:")
+
         # Initialize the model with specified parameters
         model = VGG(
-            projection_layer=projection,
-            input_shape=(3, 224, 224),
-            features=features,
+            # projection_layer=projection,
+            input_shape=(3, 32, 32),
+            # features=features,
             classes=10,
-            proj_args=config)
+            # proj_args=config
+        )
         model.to(device)
 
         # Initialize lists to store metrics for each epoch
@@ -115,62 +114,68 @@ for config in sweep:
 
         # Define the loss function and optimizer
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)
-
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=15e-5)
+        # Add learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer,
+                                                                mode='min',
+                                                                factor=0.3,
+                                                                patience=3,
+                                                                threshold=0.09
+                                                               )
 
         # Record the start time of the training process
         start_time = time.time()
 
         # Training loop over the specified number of epochs
         for epoch in range(epochs):
-            epoch_time = time.time()
+            start_time = time.time()
+
             model.train()
-            for images, labels in trainloader:
-                images = images.to(device)
-                labels = labels.to(device)
+            train_loss, train_acc = 0.0, 0.0
+
+            for batch, (X, y) in enumerate(trainloader):
+                X, y = X.to(device), y.to(device)
+                y_pred = model(X)
+                loss = criterion(y_pred, y)
+                train_loss += loss.item()
 
                 optimizer.zero_grad()
-                outputs = model(images)
-                loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
 
-            # Record the time taken for the current epoch
-            train_times.append(time.time() - epoch_time)
-            
-            print(f"Epoch {epoch} Loss: {loss.item():.4f}")
+                y_pred_class = torch.argmax(y_pred, dim=1)
+                train_acc += (y_pred_class == y).sum().item() / len(y)
 
-            # Evaluation phase
+            train_loss /= len(trainloader)
+            train_acc /= len(trainloader)
+
+            if scheduler is not None:
+                scheduler.step(train_loss)
+
             model.eval()
-            with torch.no_grad():
-                # Calculate training accuracy
-                correct, total = 0, 0
-                for images, labels in trainloader:
-                    images = images.to(device)
-                    labels = labels.to(device)
-                    outputs = model(images)
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-                train_accuracy.append(100 * correct / total)
+            test_loss, test_acc = 0.0, 0.0
 
-                # Calculate test accuracy and average forward pass time
-                correct, total = 0, 0
-                forward_pass_time = 0
-                for images, labels in testloader:
-                    images = images.to(device)
-                    labels = labels.to(device)
-                    test_start = time.time()
-                    outputs = model(images)
-                    forward_pass_time += time.time() - test_start
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-                test_accuracy.append(100 * correct / total)
+            with torch.inference_mode():
+                for batch, (X, y) in enumerate(testloader):
+                    X, y = X.to(device), y.to(device)
+                    y_pred = model(X)
+                    loss = criterion(y_pred, y)
+                    test_loss += loss.item()
 
-                
-                forward_pass_times.append(forward_pass_time / len(testloader))
-                print(f"Epoch {epoch}: Train Accuracy = {train_accuracy[epoch]:.2f}%, Test Accuracy = {test_accuracy[epoch]:.2f}%")
+                    y_pred_class = torch.argmax(y_pred, dim=1)
+                    test_acc += (y_pred_class == y).sum().item() / len(y)
+
+            test_loss /= len(testloader)
+            test_acc /= len(testloader)
+
+            forward_pass_times.append((time.time() - start_time) / len(testloader))
+            train_times.append(time.time() - start_time)
+            train_accuracy.append(100 * train_acc)
+            test_accuracy.append(100 * test_acc)
+
+            print(f"Epoch {epoch}: "
+                f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
+                f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
 
         # Calculate the total elapsed time for the current trial
         elapsed_time = time.time() - start_time
@@ -189,7 +194,7 @@ for config in sweep:
 
     # Append the results of the current configuration to the overall results list
     all_results.append(results)
-    
+
 # Check for dir existence
 if not os.path.exists("results"):
     os.makedirs("results")
