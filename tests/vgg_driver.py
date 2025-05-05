@@ -1,24 +1,45 @@
+"""
+VGG Training Script
+
+This script runs experiments for training VGG models on CIFAR-10 using FastFood or RKS projection layers.
+It loads configurations from a JSON file, runs trials according to these configs, and saves results.
+
+The script supports two projection layers:
+- FastFoodLayer: Implements the FastFood transform for parameter reduction
+- RKSLayer: Implements Random Kitchen Sinks for parameter reduction
+
+Results are saved as a JSON file in the Results directory, including accuracy metrics,
+training times, and parameter counts.
+"""  
+
 import json
 import torch
 import argparse
 import os
 from torchvision import datasets, transforms
 import torch.nn as nn
-import torch.optim as optim
 import time
 from fastfood_torch.networks import VGG
 from fastfood_torch.transforms import FastFoodLayer, RKSLayer
 
-# Determine the device to be used for computation (GPU if available, else CPU)
+# Device for operations
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def count_params(model):
     """
     Count the number of learnable and non-learnable parameters in a model.
-    Args:
-        model (torch.nn.Module): The model to analyze.
-    Returns:
-        tuple: A tuple containing the number of learnable parameters and non-learnable parameters.
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model to analyze parameters
+        
+    Returns
+    -------
+    tuple of ints
+        (learnable_params, non_learnable_params)
+        - learnable_params: Number of parameters that require gradients
+        - non_learnable_params: Number of parameters that don't require gradients
     """
     learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     non_learnable_params = sum(p.numel() for p in model.parameters() if not p.requires_grad)
@@ -26,9 +47,18 @@ def count_params(model):
 
 def parse_all_args():
     """
-    Parse command-line arguments for the script.
-    Returns:
-        argparse.Namespace: Parsed command-line arguments.
+    Parse command-line arguments for experiment configuration.
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    argparse.Namespace
+        Parsed command-line arguments with the following attributes:
+        - config: Path to the JSON configuration file
+        - filename: Name of the file to save results
     """
     parser = argparse.ArgumentParser(description="Run experiments based on configurations in .json file")
     parser.add_argument('--config', type=str, help="Desired config to run (ex: configs.json)")
@@ -60,7 +90,7 @@ for config in sweep:
     projection = layer_map[layer_name]
     config["device"] = str(device)
 
-    # Backup the original config before popping
+    # Strore the original configuration for later reference
     original_config = config.copy()
 
     # Define data transformations and load datasets
@@ -100,11 +130,11 @@ for config in sweep:
 
         # Initialize the model with specified parameters
         model = VGG(
-            # projection_layer=projection,
+            projection_layer=projection,
             input_shape=(3, 32, 32),
-            # features=features,
-            classes=10,
-            # proj_args=config
+            features=features,
+            num_classes=10,
+            proj_args=config
         )
         model.to(device)
 
@@ -114,22 +144,16 @@ for config in sweep:
 
         # Define the loss function and optimizer
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=15e-5)
-        # Add learning rate scheduler
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer,
-                                                                mode='min',
-                                                                factor=0.3,
-                                                                patience=3,
-                                                                threshold=0.09
-                                                               )
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
 
         # Record the start time of the training process
         start_time = time.time()
 
         # Training loop over the specified number of epochs
         for epoch in range(epochs):
-            start_time = time.time()
+            epoch_start_time = time.time()
 
+            # Train phase
             model.train()
             train_loss, train_acc = 0.0, 0.0
 
@@ -149,9 +173,7 @@ for config in sweep:
             train_loss /= len(trainloader)
             train_acc /= len(trainloader)
 
-            if scheduler is not None:
-                scheduler.step(train_loss)
-
+            # Evaluation phase
             model.eval()
             test_loss, test_acc = 0.0, 0.0
 
@@ -168,14 +190,16 @@ for config in sweep:
             test_loss /= len(testloader)
             test_acc /= len(testloader)
 
-            forward_pass_times.append((time.time() - start_time) / len(testloader))
-            train_times.append(time.time() - start_time)
+            # Record metrics for the current epoch
+            epoch_time = time.time() - epoch_start_time
+            forward_pass_times.append(epoch_time / len(testloader))
+            train_times.append(epoch_time)
             train_accuracy.append(100 * train_acc)
             test_accuracy.append(100 * test_acc)
 
             print(f"Epoch {epoch}: "
-                f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
-                f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
+                  f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
+                  f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
 
         # Calculate the total elapsed time for the current trial
         elapsed_time = time.time() - start_time
@@ -200,7 +224,8 @@ if not os.path.exists("results"):
     os.makedirs("results")
 
 # Save all experiment results to a JSON file
-with open(os.path.join("results", f"{args.filename}"), "w") as f:
+result_path = os.path.join("results", f"{args.filename}")
+with open(result_path, "w") as f:
     json.dump(all_results, f, indent=4)
 
 print(f"Runs complete, saved to {args.filename}")
