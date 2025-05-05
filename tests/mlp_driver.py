@@ -1,3 +1,17 @@
+"""
+MLP Training Script
+
+This script runs experiments for training MLP models on Fashion MNIST using FastFood or RKS projection layers.
+It loads configurations from a JSON file, runs trials according to these configs, and saves results.
+
+The script supports two projection layers:
+- FastFoodLayer: Implements the FastFood transform for parameter reduction
+- RKSLayer: Implements Random Kitchen Sinks for parameter reduction
+
+Results are saved as a JSON file in the Results directory, including accuracy metrics,
+training times, and parameter counts.
+"""  
+
 import json
 import torch
 import argparse
@@ -9,35 +23,50 @@ import time
 from fastfood_torch.networks import MLP
 from fastfood_torch.transforms import FastFoodLayer, RKSLayer
 
-# Determine the device to be used for computation (GPU if available, else CPU)
+# Device for operations
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def count_params(model):
     """
     Count the number of learnable and non-learnable parameters in a model.
-    Args:
-        model (torch.nn.Module): The model to analyze.
-    Returns:
-        tuple: A tuple containing the number of learnable parameters and non-learnable parameters.
+    
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Model to analyze parameters
+        
+    Returns
+    -------
+    tuple of ints
+        (learnable_params, non_learnable_params)
+        - learnable_params: Number of parameters that require gradients
+        - non_learnable_params: Number of parameters that don't require gradients
     """
     learnable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     non_learnable_params = sum(p.numel() for p in model.parameters() if not p.requires_grad)
     return learnable_params, non_learnable_params
 
-
 def parse_all_args():
     """
-    Parse command-line arguments for the script.
-    Returns:
-        argparse.Namespace: Parsed command-line arguments.
+    Parse command-line arguments for experiment configuration.
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    argparse.Namespace
+        Parsed command-line arguments with the following attributes:
+        - config: Path to the JSON configuration file
+        - filename: Name of the file to save results
     """
     parser = argparse.ArgumentParser(description="Run experiments based on configurations in .json file")
     parser.add_argument('--config', type=str, help="Desired config to run (ex: configs.json)")
     parser.add_argument('--filename', type=str, help="Filename for saving results of the run (ex: results.json)")
     return parser.parse_args()
 
-
-# Mapping of layer names to their corresponding classes 
+# Mapping of layer names to their corresponding classes
 layer_map = {
     "FastFoodLayer": FastFoodLayer,
     "RKSLayer": RKSLayer
@@ -56,17 +85,17 @@ all_results = []
 # Iterate over each configuration in the sweep
 for config in sweep:
     print(config)
-    
+
     # Extract the layer name and retrieve the corresponding class
     layer_name = config.pop("layer")
     projection = layer_map[layer_name]
     config["device"] = str(device)
 
-    # Backup the original config before popping
+    # Store the original configuration for later reference
     original_config = config.copy()
 
     # Define data transformations and load datasets
-    transform = transforms.Compose([ 
+    transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,)),
         transforms.Pad(2, padding_mode="edge")
@@ -97,10 +126,17 @@ for config in sweep:
     widths = config.pop("widths")
 
     # Conduct multiple trials for the current configuration
-    for _ in range(trials):
-        print(f"Trial {_}:")
+    for trial in range(trials):
+        print(f"Trial {trial}:")
+
         # Initialize the model with specified parameters
-        model = MLP(input_dim=1024, classes=10, widths=widths, layer=projection, proj_args=config)
+        model = MLP(
+            input_dim=1024, 
+            classes=10, 
+            widths=widths, 
+            layer=projection, 
+            proj_args=config
+        )
         model.to(device)
 
         # Initialize lists to store metrics for each epoch
@@ -116,50 +152,61 @@ for config in sweep:
 
         # Training loop over the specified number of epochs
         for epoch in range(epochs):
-            epoch_time = time.time()
-            model.train()
-            for images, labels in trainloader:
-                images = images.view(images.size(0), -1).to(device)
-                labels = labels.to(device)
+            epoch_start_time = time.time()
 
+            # Train phase
+            model.train()
+            train_loss, train_acc = 0.0, 0.0
+
+            for batch, (X, y) in enumerate(trainloader):
+                X = X.view(X.size(0), -1).to(device)
+                y = y.to(device)
+                
                 optimizer.zero_grad()
-                outputs = model(images)
-                loss = criterion(outputs, labels)
+                y_pred = model(X)
+                loss = criterion(y_pred, y)
                 loss.backward()
                 optimizer.step()
+                
+                train_loss += loss.item()
+                y_pred_class = torch.argmax(y_pred, dim=1)
+                train_acc += (y_pred_class == y).sum().item() / len(y)
 
-            # Record the time taken for the current epoch
-            train_times.append(time.time() - epoch_time)
+            train_loss /= len(trainloader)
+            train_acc /= len(trainloader)
 
             # Evaluation phase
             model.eval()
-            with torch.no_grad():
-                # Calculate training accuracy
-                correct, total = 0, 0
-                for images, labels in trainloader:
-                    images = images.view(images.size(0), -1).to(device)
-                    labels = labels.to(device)
-                    outputs = model(images)
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-                train_accuracy.append(100 * correct / total)
+            test_loss, test_acc = 0.0, 0.0
 
-                # Calculate test accuracy and average forward pass time
-                correct, total = 0, 0
-                forward_pass_time = 0
-                for images, labels in testloader:
-                    images = images.view(images.size(0), -1).to(device)
-                    labels = labels.to(device)
+            with torch.inference_mode():
+                for batch, (X, y) in enumerate(testloader):
+                    X = X.view(X.size(0), -1).to(device)
+                    y = y.to(device)
+                    
                     test_start = time.time()
-                    outputs = model(images)
-                    forward_pass_time += time.time() - test_start
-                    _, predicted = torch.max(outputs, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-                test_accuracy.append(100 * correct / total)
-                forward_pass_times.append(forward_pass_time / len(testloader))
-                print(f"Epoch {epoch}: Accuracy of {test_accuracy[epoch]:.2f}%, forward pass time of {forward_pass_times[epoch]:.2f}.")
+                    y_pred = model(X)
+                    forward_time = time.time() - test_start
+                    
+                    loss = criterion(y_pred, y)
+                    test_loss += loss.item()
+
+                    y_pred_class = torch.argmax(y_pred, dim=1)
+                    test_acc += (y_pred_class == y).sum().item() / len(y)
+
+            test_loss /= len(testloader)
+            test_acc /= len(testloader)
+
+            # Record metrics for the current epoch
+            epoch_time = time.time() - epoch_start_time
+            forward_pass_times.append(forward_time / len(testloader))  # Average time per batch
+            train_times.append(epoch_time)
+            train_accuracy.append(100 * train_acc)
+            test_accuracy.append(100 * test_acc)
+
+            print(f"Epoch {epoch}: "
+                  f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
+                  f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
 
         # Calculate the total elapsed time for the current trial
         elapsed_time = time.time() - start_time
@@ -178,13 +225,14 @@ for config in sweep:
 
     # Append the results of the current configuration to the overall results list
     all_results.append(results)
-    
+
 # Check for dir existence
 if not os.path.exists("results"):
     os.makedirs("results")
 
 # Save all experiment results to a JSON file
-with open(os.path.join("results", f"{args.filename}"), "w") as f:
+result_path = os.path.join("results", f"{args.filename}")
+with open(result_path, "w") as f:
     json.dump(all_results, f, indent=4)
 
 print(f"Runs complete, saved to {args.filename}")
