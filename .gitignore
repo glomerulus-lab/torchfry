@@ -1,10 +1,13 @@
 FastFood_BaseLine/OnLearningTheKernel
 FastFood_BaseLine/structured_nets
-fast_hadamard_transform/
+fast-hadamard-transform/
 fast_hadamard_transform.egg-info/
 hadamard_transform/
 data/
 build/
+results/
+dist/
+*.json
 tests/results
 *.egg-info
 __pycache__

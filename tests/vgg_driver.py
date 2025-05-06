@@ -57,12 +57,12 @@ def parse_all_args():
     -------
     argparse.Namespace
         Parsed command-line arguments with the following attributes:
-        - config: Path to the JSON configuration file
-        - filename: Name of the file to save results
+        - config: Key to select specific config from the JSON file
+        - filename: Base name of the config file (used for reading JSON and saving results)
     """
-    parser = argparse.ArgumentParser(description="Run experiments based on configurations in .json file")
-    parser.add_argument('--config', type=str, help="Desired config to run (ex: configs.json)")
-    parser.add_argument('--filename', type=str, help="Filename for saving results of the run (ex: results.json)")
+    parser = argparse.ArgumentParser(description="Run a specific config from file")
+    parser.add_argument('--config', type=str, help="Key of the config to run (e.g., 'exp_001')", required=True)
+    parser.add_argument('--filename', type=str, help="Base filename (used for loading config and saving results)", required=True)
     return parser.parse_args()
 
 # Mapping of layer names to their corresponding classes
@@ -74,158 +74,174 @@ layer_map = {
 # Parse command-line arguments
 args = parse_all_args()
 
-# Load configuration parameters from the JSON file
-with open(args.config, "r") as f:
+# Load the specified configuration from the JSON file
+with open(f"{args.filename}.json", "r") as f:
     sweep = json.load(f)
 
-# Initialize a list to store all experiment results
-all_results = []
+# Extract the specific configuration to run
+config = sweep[args.config]
+print(config)
 
-# Iterate over each configuration in the sweep
-for config in sweep:
-    print(config)
+# Extract the layer name and retrieve the corresponding class
+layer_name = config.pop("layer")
+projection = layer_map[layer_name]
+config["device"] = str(device)
 
-    # Extract the layer name and retrieve the corresponding class
-    layer_name = config.pop("layer")
-    projection = layer_map[layer_name]
-    config["device"] = str(device)
+# Store the original configuration for later reference
+original_config = config.copy()
 
-    # Strore the original configuration for later reference
-    original_config = config.copy()
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
 
-    # Define data transformations and load datasets
-    transform = transforms.Compose([
+trainloader = torch.utils.data.DataLoader(
+    datasets.CIFAR10(root='./data', train=True, transform=transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(32, 4),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
-                             std=[0.247, 0.243, 0.261]),
-    ])
-    trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
+        normalize,
+    ]), download=True),
+    batch_size=config["mb"], shuffle=True,
+    num_workers=2, pin_memory=True)
 
-    # Initialize a dictionary to store results for the current configuration
-    results = {
-        "Projection Layer": layer_name,
-        "Projection Arguments": original_config,
-        "Train Accuracies": [],
-        "Test Accuracies": [],
-        "Elapsed Time": [],
-        "Train Times Per Epoch": [],
-        "Forward Pass Times": [],
-        "Learnable Params": 0,
-        "Non-Learnable Params": 0,
-    }
+testloader = torch.utils.data.DataLoader(
+    datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
+        transforms.ToTensor(),
+        normalize,
+    ])),
+    batch_size=config["mb"], shuffle=False,
+    num_workers=2, pin_memory=True)
 
-    # Extract and remove arguments that shouldn't be passed into the model
-    lr = config.pop("lr")
-    mb = config.pop("mb")
-    trials = config.pop("trials")
-    epochs = config.pop("epochs")
-    features = config.pop("features")
+# Initialize a dictionary to store results for the current configuration
+results = {
+    "Projection Layer": layer_name,
+    "Projection Arguments": original_config,
+    "Train Accuracies": [],
+    "Test Accuracies": [],
+    "Elapsed Time": [],
+    "Train Times Per Epoch": [],
+    "Forward Pass Times": [],
+    "Learnable Params": 0,
+    "Non-Learnable Params": 0,
+}
 
-    # Conduct multiple trials for the current configuration
-    for trial in range(trials):
-        print(f"Trial {trial}:")
+# Extract and remove arguments that shouldn't be passed into the model
+lr = config.pop("lr")
+mb = config.pop("mb")
+trials = config.pop("trials")
+epochs = config.pop("epochs")
+features = config.pop("features")
 
-        # Initialize the model with specified parameters
-        model = VGG(
-            projection_layer=projection,
-            input_shape=(3, 32, 32),
-            features=features,
-            num_classes=10,
-            proj_args=config
-        )
-        model.to(device)
+# Conduct multiple trials for the current configuration
+for trial in range(trials):
+    print(f"Trial {trial}:")
 
-        # Initialize lists to store metrics for each epoch
-        train_accuracy, test_accuracy = [], []
-        train_times, forward_pass_times = [], []
+    # Initialize the model with specified parameters
+    model = VGG(
+        projection_layer=projection,
+        input_shape=(3, 32, 32),
+        features=features,
+        num_classes=10,
+        proj_args=config
+    )
+    model.to(device)
 
-        # Define the loss function and optimizer
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    # Initialize lists to store metrics for each epoch
+    train_accuracy, test_accuracy = [], []
+    train_times, forward_pass_times = [], []
 
-        # Record the start time of the training process
-        start_time = time.time()
+    # Define the loss function and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), 
+                                lr=lr,
+                                momentum=0.9,
+                                weight_decay=5e-4,
+                                nesterov=True)
+    
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                           mode='max',
+                                                           factor=0.1,
+                                                           patience=3,
+                                                           threshold=0.001
+                                                         )
 
-        # Training loop over the specified number of epochs
-        for epoch in range(epochs):
-            epoch_start_time = time.time()
+    # Record the start time of the training process
+    start_time = time.time()
 
-            # Train phase
-            model.train()
-            train_loss, train_acc = 0.0, 0.0
+    # Training loop over the specified number of epochs
+    for epoch in range(epochs):
+        epoch_start_time = time.time()
 
-            for batch, (X, y) in enumerate(trainloader):
+        # Train phase
+        model.train()
+        train_loss, train_acc = 0.0, 0.0
+
+        for batch, (X, y) in enumerate(trainloader):
+            X, y = X.to(device), y.to(device)
+            y_pred = model(X)
+            loss = criterion(y_pred, y)
+            train_loss += loss.item()
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            y_pred_class = torch.argmax(y_pred, dim=1)
+            train_acc += (y_pred_class == y).sum().item() / len(y)
+
+        train_loss /= len(trainloader)
+        train_acc /= len(trainloader)
+
+        # Evaluation phase
+        model.eval()
+        test_loss, test_acc = 0.0, 0.0
+
+        with torch.inference_mode():
+            for batch, (X, y) in enumerate(testloader):
                 X, y = X.to(device), y.to(device)
                 y_pred = model(X)
                 loss = criterion(y_pred, y)
-                train_loss += loss.item()
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                test_loss += loss.item()
 
                 y_pred_class = torch.argmax(y_pred, dim=1)
-                train_acc += (y_pred_class == y).sum().item() / len(y)
+                test_acc += (y_pred_class == y).sum().item() / len(y)
 
-            train_loss /= len(trainloader)
-            train_acc /= len(trainloader)
+        test_loss /= len(testloader)
+        test_acc /= len(testloader)
+        scheduler.step(test_acc)
+        
+        # Record metrics for the current epoch
+        epoch_time = time.time() - epoch_start_time
+        forward_pass_times.append(epoch_time / len(testloader))
+        train_times.append(epoch_time)
+        train_accuracy.append(100 * train_acc)
+        test_accuracy.append(100 * test_acc)
 
-            # Evaluation phase
-            model.eval()
-            test_loss, test_acc = 0.0, 0.0
+        print(f"Epoch {epoch}: "
+              f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
+              f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
 
-            with torch.inference_mode():
-                for batch, (X, y) in enumerate(testloader):
-                    X, y = X.to(device), y.to(device)
-                    y_pred = model(X)
-                    loss = criterion(y_pred, y)
-                    test_loss += loss.item()
+    # Calculate the total elapsed time for the current trial
+    elapsed_time = time.time() - start_time
 
-                    y_pred_class = torch.argmax(y_pred, dim=1)
-                    test_acc += (y_pred_class == y).sum().item() / len(y)
+    # Count the number of learnable and non-learnable parameters in the model
+    learnable_params, non_learnable_params = count_params(model)
 
-            test_loss /= len(testloader)
-            test_acc /= len(testloader)
-
-            # Record metrics for the current epoch
-            epoch_time = time.time() - epoch_start_time
-            forward_pass_times.append(epoch_time / len(testloader))
-            train_times.append(epoch_time)
-            train_accuracy.append(100 * train_acc)
-            test_accuracy.append(100 * test_acc)
-
-            print(f"Epoch {epoch}: "
-                  f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
-                  f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
-
-        # Calculate the total elapsed time for the current trial
-        elapsed_time = time.time() - start_time
-
-        # Count the number of learnable and non-learnable parameters in the model
-        learnable_params, non_learnable_params = count_params(model)
-
-        # Store the results of the current trial
-        results["Train Accuracies"].append(train_accuracy)
-        results["Test Accuracies"].append(test_accuracy)
-        results["Elapsed Time"].append(elapsed_time)
-        results["Train Times Per Epoch"].append(train_times)
-        results["Forward Pass Times"].append(forward_pass_times)
-        results["Learnable Params"] = learnable_params
-        results["Non-Learnable Params"] = non_learnable_params
-
-    # Append the results of the current configuration to the overall results list
-    all_results.append(results)
+    # Store the results of the current trial
+    results["Train Accuracies"].append(train_accuracy)
+    results["Test Accuracies"].append(test_accuracy)
+    results["Elapsed Time"].append(elapsed_time)
+    results["Train Times Per Epoch"].append(train_times)
+    results["Forward Pass Times"].append(forward_pass_times)
+    results["Learnable Params"] = learnable_params
+    results["Non-Learnable Params"] = non_learnable_params
 
 # Check for dir existence
 if not os.path.exists("results"):
     os.makedirs("results")
 
 # Save all experiment results to a JSON file
-result_path = os.path.join("results", f"{args.filename}")
+result_path = os.path.join("results", f"{args.filename}.json")
 with open(result_path, "w") as f:
-    json.dump(all_results, f, indent=4)
+    json.dump([results], f, indent=4)
 
-print(f"Runs complete, saved to {args.filename}")
+print(f"Run complete, saved to results/{args.filename}.json")
