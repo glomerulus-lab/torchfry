@@ -56,4 +56,4 @@ TODO: Compile more results with consistent and good labeling, create tables show
 
 This project includes modified and unmodified code from **structured-nets** ([originally licensed under the Apache License 2.0](https://github.com/HazyResearch/structured-nets)) and **OnLearningTheKernel** ([no original license](https://github.com/cs1160701/OnLearningTheKernel)).
 
-See THIRD_PARTY_LICENSES for details.
+See NOTICE for details.

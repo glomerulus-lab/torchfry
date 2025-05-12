@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-This project includes the following third-party software components. Each is included under the terms of its respective license.
+This project includes the following third-party software components. Each is included under the terms of its respective license (or lack thereof).
 
 ---
 ## HazyResearch/structured-nets
@@ -243,3 +243,8 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---
+## cs1160701/OnLearningTheKernel
+**License:** None\
+**Source:** https://github.com/cs1160701/OnLearningTheKernel

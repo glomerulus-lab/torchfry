@@ -10,11 +10,21 @@ def hadamard_transform_pytorch(u, normalize=False):
     """
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
     n must be a power of 2.
-    Parameters:
-        u: Tensor of shape (..., n)
-        normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
-    Returns:
-        product: Tensor of shape (..., n)
+
+    Parameters
+    ----------
+    u: Tensor of shape (..., n)
+    normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
+    
+    Returns
+    -------
+    product: Tensor of shape (..., n)
+
+    Notes
+    -----
+    This Hadamard function is taken from the following:
+    `HazyResearch/structured-nets/pytorch/structure/hadamard.py`
+    `cs1160701/OnLearningTheKernel/fast_transformers/feature_maps/fastfood.py` 
     """
     n = u.shape[-1]
     m = int(np.log2(n))
@@ -29,7 +39,7 @@ class hadamard_transform_matmul:
     """
     Hadamard Transform using explicit Hadamard matrix instantiation and matrix multiplication.
 
-    Arguments
+    Parameters
     ----------
     input_dim : int  
         The dimension of the Hadamard matrix, matching the last dimension of the input matrix.  
@@ -44,13 +54,15 @@ class hadamard_transform_matmul:
     
 class FastFoodLayer(nn.Module):
     """
-    Random Fastfood features for the RBF kernel according to [1].
+    Implementation of Fastfood transformation layer for efficient random feature mapping.
 
-    [1]: "Fastfood - Approximating Kernel Expansions in Loglinear Time" 
-    by Quoc Le, Tamas Sarlos and Alexander Smola.
+    This layer approximates a dense random projection using the Fastfood algorithm,
+    which utilizes structured matrices (Hadamard, diagonal random, permutation matrices) 
+    to reduce time complexity from Random Kitchen Sink's O(nd) to O(n log d) and space 
+    complexity from O(n^2) to O(n), where d is the input_dim and n is the output_dim.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
         input_dim: int 
             The input data feature dimension.
         output_dim: int
@@ -69,11 +81,15 @@ class FastFoodLayer(nn.Module):
             If internal nonlinearity is used, or defered
         hadamard: string
             Type of hadamard function desired, Dao, Recursive FWHT, or matrix mul. ("Dao", "Matmul", "Torch")
+
+    Notes
+    -----
+    See "Fastfood | Approximating Kernel Expansions in Loglinear Time" by
+    Quoc Le, Tamás Sarlós and Alex Smola.
     """
 
     def __init__(self, input_dim, output_dim, scale=1, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True, hadamard=None):
         super(FastFoodLayer, self).__init__()
-
         # Initialize parameters for Fastfood function
         self.m = math.ceil(output_dim / input_dim)
         self.input_dim = input_dim
@@ -117,7 +133,7 @@ class FastFoodLayer(nn.Module):
         matrix B, the Gaussian scaling matrix G, and the scaling matrix S based 
         on the learnable parameters.
 
-        Arguments:
+        Parameters
         ----------
         dtype (torch.dtype): The data type for the matrices.
         """
@@ -157,12 +173,12 @@ class FastFoodLayer(nn.Module):
         """
         Compute the Fastfood feature map for the given input. 
 
-        Arguments: 
+        Parameters
         ----------
         x : (N, L, H, D)
             The input tensor.
         
-        Returns:
+        Returns
         -------
         Tensor: The transformed tensor after applying the Fastfood feature map.
         """
@@ -186,9 +202,12 @@ class FastFoodLayer(nn.Module):
         """
         Apply nonlinearity to output.
 
-        Arguments:
+        Parameters
         ----------
             x (tensor): Input tensor that will be transformed.
+        
+        Returns
+        -------
         """
 
         # Create a uniform distribution between 0 and 2 * pi
