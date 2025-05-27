@@ -57,12 +57,12 @@ def parse_all_args():
     -------
     argparse.Namespace
         Parsed command-line arguments with the following attributes:
-        - config: Key to select specific config from the JSON file
-        - filename: Base name of the config file (used for reading JSON and saving results)
+        - config: Path to the JSON config file to run (e.g., 'configs/vgg_exp001.json')
+        - save_name: Base name for saving the result file (e.g., 'vgg_exp001_results')
     """
-    parser = argparse.ArgumentParser(description="Run a specific config from file")
-    parser.add_argument('--config', type=str, help="Key of the config to run (e.g., 'exp_001')", required=True)
-    parser.add_argument('--filename', type=str, help="Base filename (used for loading config and saving results)", required=True)
+    parser = argparse.ArgumentParser(description="Run training using config JSON")
+    parser.add_argument('--config', type=str, required=True, help="Path to the config JSON file")
+    parser.add_argument('--save', type=str, required=True, help="JSON file name to save results")
     return parser.parse_args()
 
 # Mapping of layer names to their corresponding classes
@@ -75,12 +75,8 @@ layer_map = {
 args = parse_all_args()
 
 # Load the specified configuration from the JSON file
-with open(f"{args.filename}.json", "r") as f:
-    sweep = json.load(f)
-
-# Extract the specific configuration to run
-config = sweep[args.config]
-print(config)
+with open(args.config, "r") as f:
+    config = json.load(f)
 
 # Extract the layer name and retrieve the corresponding class
 layer_name = config.pop("layer")
@@ -138,7 +134,6 @@ for trial in range(trials):
     # Initialize the model with specified parameters
     model = VGG(
         projection_layer=projection,
-        input_shape=(3, 32, 32),
         features=features,
         num_classes=10,
         proj_args=config
@@ -162,7 +157,7 @@ for trial in range(trials):
                                                            factor=0.1,
                                                            patience=3,
                                                            threshold=0.001
-                                                         )
+                                                        )
 
     # Record the start time of the training process
     start_time = time.time()
@@ -240,8 +235,8 @@ if not os.path.exists("results"):
     os.makedirs("results")
 
 # Save all experiment results to a JSON file
-result_path = os.path.join("results", f"{args.filename}.json")
+result_path = os.path.join("results", args.save)
 with open(result_path, "w") as f:
     json.dump([results], f, indent=4)
 
-print(f"Run complete, saved to results/{args.filename}.json")
+print(f"Run complete, saved to results/{args.save}")

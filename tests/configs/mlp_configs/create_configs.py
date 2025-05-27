@@ -1,6 +1,6 @@
 """
-Generate JSON configuration files for FastFoodLayer and RKSLayer experiments using
-combinations of learnable parameter settings. Files are saved in the current directory.
+Generate JSON configuration files for FastFoodLayer and RKSLayer experiments with
+various learnable parameter combinations. Files are saved in the current directory.
 """
 
 import json
@@ -9,12 +9,12 @@ from itertools import product
 # Base shared configuration
 base_config = {
     "scale": 0.1,
-    "lr": 0.1,
-    "mb": 1024,
-    "epochs": 200,
-    "trials": 5,
-    "features": 512,
-    "nonlinearity": False
+    "lr": 0.001,
+    "mb": 512,
+    "epochs": 20,
+    "trials": 10,
+    "widths": [8192, 8192, 8192],
+    "nonlinearity": False,
 }
 
 # Generate FastFoodLayer configurations

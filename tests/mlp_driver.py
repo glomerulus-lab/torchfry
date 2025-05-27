@@ -63,7 +63,7 @@ def parse_all_args():
     """
     parser = argparse.ArgumentParser(description="Run experiments based on configurations in .json file")
     parser.add_argument('--config', type=str, help="Desired config to run (ex: configs.json)")
-    parser.add_argument('--filename', type=str, help="Filename for saving results of the run (ex: results.json)")
+    parser.add_argument('--save', type=str, help="Filename for saving results of the run (ex: results.json)")
     return parser.parse_args()
 
 # Mapping of layer names to their corresponding classes
@@ -77,154 +77,153 @@ args = parse_all_args()
 
 # Load configuration parameters from the JSON file
 with open(args.config, "r") as f:
-    sweep = json.load(f)
+    config = json.load(f)
 
 # Initialize a list to store all experiment results
 all_results = []
 
 # Iterate over each configuration in the sweep
-for config in sweep:
-    print(config)
+print(config)
 
-    # Extract the layer name and retrieve the corresponding class
-    layer_name = config.pop("layer")
-    projection = layer_map[layer_name]
-    config["device"] = str(device)
+# Extract the layer name and retrieve the corresponding class
+layer_name = config.pop("layer")
+projection = layer_map[layer_name]
+config["device"] = str(device)
 
-    # Store the original configuration for later reference
-    original_config = config.copy()
+# Store the original configuration for later reference
+original_config = config.copy()
 
-    # Define data transformations and load datasets
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,)),
-        transforms.Pad(2, padding_mode="edge")
-    ])
-    trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
-    testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
+# Define data transformations and load datasets
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,)),
+    transforms.Pad(2, padding_mode="edge")
+])
+trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
+testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
 
-    # Initialize a dictionary to store results for the current configuration
-    results = {
-        "Projection Layer": layer_name,
-        "Projection Arguments": original_config,
-        "Train Accuracies": [],
-        "Test Accuracies": [],
-        "Elapsed Time": [],
-        "Train Times Per Epoch": [],
-        "Forward Pass Times": [],
-        "Learnable Params": 0,
-        "Non-Learnable Params": 0,
-    }
+# Initialize a dictionary to store results for the current configuration
+results = {
+    "Projection Layer": layer_name,
+    "Projection Arguments": original_config,
+    "Train Accuracies": [],
+    "Test Accuracies": [],
+    "Elapsed Time": [],
+    "Train Times Per Epoch": [],
+    "Forward Pass Times": [],
+    "Learnable Params": 0,
+    "Non-Learnable Params": 0,
+}
 
-    # Extract and remove arguments that shouldn't be passed into the model
-    lr = config.pop("lr")
-    mb = config.pop("mb")
-    trials = config.pop("trials")
-    epochs = config.pop("epochs")
-    widths = config.pop("widths")
+# Extract and remove arguments that shouldn't be passed into the model
+lr = config.pop("lr")
+mb = config.pop("mb")
+trials = config.pop("trials")
+epochs = config.pop("epochs")
+widths = config.pop("widths")
 
-    # Conduct multiple trials for the current configuration
-    for trial in range(trials):
-        print(f"Trial {trial}:")
+# Conduct multiple trials for the current configuration
+for trial in range(trials):
+    print(f"Trial {trial}:")
 
-        # Initialize the model with specified parameters
-        model = MLP(
-            input_dim=1024, 
-            classes=10, 
-            widths=widths, 
-            layer=projection, 
-            proj_args=config
-        )
-        model.to(device)
+    # Initialize the model with specified parameters
+    model = MLP(
+        input_dim=1024, 
+        classes=10, 
+        widths=widths, 
+        layer=projection, 
+        proj_args=config
+    )
+    model.to(device)
 
-        # Initialize lists to store metrics for each epoch
-        train_accuracy, test_accuracy = [], []
-        train_times, forward_pass_times = [], []
+    # Initialize lists to store metrics for each epoch
+    train_accuracy, test_accuracy = [], []
+    train_times, forward_pass_times = [], []
 
-        # Define the loss function and optimizer
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+    # Define the loss function and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
-        # Record the start time of the training process
-        start_time = time.time()
+    # Record the start time of the training process
+    start_time = time.time()
 
-        # Training loop over the specified number of epochs
-        for epoch in range(epochs):
-            epoch_start_time = time.time()
+    # Training loop over the specified number of epochs
+    for epoch in range(epochs):
+        epoch_start_time = time.time()
 
-            # Train phase
-            model.train()
-            train_loss, train_acc = 0.0, 0.0
+        # Train phase
+        model.train()
+        train_loss, train_acc = 0.0, 0.0
 
-            for batch, (X, y) in enumerate(trainloader):
+        for batch, (X, y) in enumerate(trainloader):
+            X = X.view(X.size(0), -1).to(device)
+            y = y.to(device)
+            
+            optimizer.zero_grad()
+            y_pred = model(X)
+            loss = criterion(y_pred, y)
+            loss.backward()
+            optimizer.step()
+            
+            train_loss += loss.item()
+            y_pred_class = torch.argmax(y_pred, dim=1)
+            train_acc += (y_pred_class == y).sum().item() / len(y)
+
+        train_loss /= len(trainloader)
+        train_acc /= len(trainloader)
+
+        # Evaluation phase
+        model.eval()
+        test_loss, test_acc = 0.0, 0.0
+
+        with torch.inference_mode():
+            for batch, (X, y) in enumerate(testloader):
                 X = X.view(X.size(0), -1).to(device)
                 y = y.to(device)
                 
-                optimizer.zero_grad()
+                test_start = time.time()
                 y_pred = model(X)
-                loss = criterion(y_pred, y)
-                loss.backward()
-                optimizer.step()
+                forward_time = time.time() - test_start
                 
-                train_loss += loss.item()
+                loss = criterion(y_pred, y)
+                test_loss += loss.item()
+
                 y_pred_class = torch.argmax(y_pred, dim=1)
-                train_acc += (y_pred_class == y).sum().item() / len(y)
+                test_acc += (y_pred_class == y).sum().item() / len(y)
 
-            train_loss /= len(trainloader)
-            train_acc /= len(trainloader)
+        test_loss /= len(testloader)
+        test_acc /= len(testloader)
 
-            # Evaluation phase
-            model.eval()
-            test_loss, test_acc = 0.0, 0.0
+        # Record metrics for the current epoch
+        epoch_time = time.time() - epoch_start_time
+        forward_pass_times.append(forward_time / len(testloader))  # Average time per batch
+        train_times.append(epoch_time)
+        train_accuracy.append(100 * train_acc)
+        test_accuracy.append(100 * test_acc)
 
-            with torch.inference_mode():
-                for batch, (X, y) in enumerate(testloader):
-                    X = X.view(X.size(0), -1).to(device)
-                    y = y.to(device)
-                    
-                    test_start = time.time()
-                    y_pred = model(X)
-                    forward_time = time.time() - test_start
-                    
-                    loss = criterion(y_pred, y)
-                    test_loss += loss.item()
+        print(f"Epoch {epoch}: "
+                f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
+                f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
 
-                    y_pred_class = torch.argmax(y_pred, dim=1)
-                    test_acc += (y_pred_class == y).sum().item() / len(y)
+    # Calculate the total elapsed time for the current trial
+    elapsed_time = time.time() - start_time
 
-            test_loss /= len(testloader)
-            test_acc /= len(testloader)
+    # Count the number of learnable and non-learnable parameters in the model
+    learnable_params, non_learnable_params = count_params(model)
 
-            # Record metrics for the current epoch
-            epoch_time = time.time() - epoch_start_time
-            forward_pass_times.append(forward_time / len(testloader))  # Average time per batch
-            train_times.append(epoch_time)
-            train_accuracy.append(100 * train_acc)
-            test_accuracy.append(100 * test_acc)
+    # Store the results of the current trial
+    results["Train Accuracies"].append(train_accuracy)
+    results["Test Accuracies"].append(test_accuracy)
+    results["Elapsed Time"].append(elapsed_time)
+    results["Train Times Per Epoch"].append(train_times)
+    results["Forward Pass Times"].append(forward_pass_times)
+    results["Learnable Params"] = learnable_params
+    results["Non-Learnable Params"] = non_learnable_params
 
-            print(f"Epoch {epoch}: "
-                  f"Train Loss = {train_loss:.4f}, Train Acc = {train_accuracy[-1]:.2f}%, "
-                  f"Test Loss = {test_loss:.4f}, Test Acc = {test_accuracy[-1]:.2f}%")
-
-        # Calculate the total elapsed time for the current trial
-        elapsed_time = time.time() - start_time
-
-        # Count the number of learnable and non-learnable parameters in the model
-        learnable_params, non_learnable_params = count_params(model)
-
-        # Store the results of the current trial
-        results["Train Accuracies"].append(train_accuracy)
-        results["Test Accuracies"].append(test_accuracy)
-        results["Elapsed Time"].append(elapsed_time)
-        results["Train Times Per Epoch"].append(train_times)
-        results["Forward Pass Times"].append(forward_pass_times)
-        results["Learnable Params"] = learnable_params
-        results["Non-Learnable Params"] = non_learnable_params
-
-    # Append the results of the current configuration to the overall results list
-    all_results.append(results)
+# Append the results of the current configuration to the overall results list
+all_results.append(results)
 
 # Check for dir existence
 if not os.path.exists("results"):
