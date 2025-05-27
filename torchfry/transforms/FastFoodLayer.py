@@ -9,22 +9,24 @@ import math
 def hadamard_transform_pytorch(u, normalize=False):
     """
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
-    n must be a power of 2.
 
     Parameters
     ----------
-    u: Tensor of shape (..., n)
-    normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
+    u: torch.Tensor 
+        Has a shape (..., n) where n is a power of 2.
+    normalize: bool
+        Trim the input matrix so the last dimension is a power of 2.
     
     Returns
     -------
-    product: Tensor of shape (..., n)
+    product: torch.Tensor
+        Returns the same tensor in memory, but edited so that the Hadamard
+        function has been applied. 
 
-    Notes
-    -----
-    This Hadamard function is taken from the following:
-    `HazyResearch/structured-nets/pytorch/structure/hadamard.py`
-    `cs1160701/OnLearningTheKernel/fast_transformers/feature_maps/fastfood.py` 
+    References
+    ----------
+    .. [1] https://github.com/HazyResearch/structured-nets
+    .. [2] https://github.com/cs1160701/OnLearningTheKernel
     """
     n = u.shape[-1]
     m = int(np.log2(n))
@@ -37,7 +39,8 @@ def hadamard_transform_pytorch(u, normalize=False):
 
 class hadamard_transform_matmul:
     """
-    Hadamard Transform using explicit Hadamard matrix instantiation and matrix multiplication.
+    This Hadamard transformation explicitly stores the Hadamard matrix, then performs matrix multiplication
+    to complete the transformation.
 
     Parameters
     ----------
@@ -68,26 +71,85 @@ class FastFoodLayer(nn.Module):
         output_dim: int
             The output dimension to be projected into.
         scale: float
-            Scale factor for normalization
-        learn_S: boolean    return np.concatenate([x_even + x_odd, x_even - x_odd])
+            Scalar factor for normalization
+        learn_S: bool
             If S matrix is to be learnable
-        learn_G: boolean
+        learn_G: bool
             If G matrix is to be learnable
-        learn_B: booleanself.hadamard_matrix = torch.tensor(scipy.linalg.hadamard(input_dim), device=device, dtype=torch.int)
+        learn_B: bool
             If B matrix is to be learnable
-        device: string
+        device: torch.device
             The device on which computations will be performed
-        nonlinearity: boolean
+        nonlinearity: bool
             If internal nonlinearity is used, or defered
-        hadamard: string
+        hadamard: str
             Type of hadamard function desired, Dao, Recursive FWHT, or matrix mul. ("Dao", "Matmul", "Torch")
-
     Notes
     -----
-    See "Fastfood | Approximating Kernel Expansions in Loglinear Time" by
-    Quoc Le, Tamás Sarlós and Alex Smola.
-    """
+    .. math::
 
+        V = \\frac{1}{\\sigma \\sqrt{d}} SHG \\Pi HB
+
+    :math:`\mathbf{S}`: Scaling matrix, allows our rows of V to be independent of one another.  
+    For Fastfood, this helps us match the radial shape from an RBF Kernel.
+
+    :math:`\mathbf{H}`: Hadamard Function is a square symmetric matrix of 1 and -1 where each  
+    column is orthogonal. Our package ships with three options for Hadamard: Matmul, Dao, and Torch.
+
+    :math:`\mathbf{G}`:
+    Diagonal Gaussian Matrix. Data sampled from a normal distribution with variance  
+    proportional to the dimension of the input data.
+
+    :math:`\mathbf{\Pi}`:
+    Applies a permutation to randomize the order of the rows. After the second  
+    Hadamard is applied, the rows are independent of one another.
+
+    :math:`\mathbf{B}`:
+    Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.
+ 
+
+            
+    References
+    ----------
+    .. [1] Le, Q., Sarlós, T., & Smola, A. (2018). Fastfood: Approximate Kernel Expansions in Loglinear Time.
+        https://arxiv.org/pdf/1408.3060
+    
+    Examples
+    --------
+    A simple example of the Fastfood layer on a linear regression dataset with noise.
+
+    >>> import torch
+    >>> import torch.nn as nn
+    >>> from fastfood_torch.transforms import FastFoodLayer
+    >>>
+    >>> device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    >>>
+    >>> # Linear regression with noise
+    >>> x = torch.randn(128, 1, device=device)
+    >>> y = 2*x + 3 + 0.1*torch.randn(128, 1, device=device)
+    >>>
+    >>> model = nn.Sequential(
+    >>>     FastFoodLayer(1, 512, scale=1, learn_B=True, learn_G=True, learn_S=True, device=device, hadamard="Torch"),
+    >>>     FastFoodLayer(512, 512, scale=1, learn_B=True, learn_G=True, learn_S=True, device=device, hadamard="Torch"),
+    >>>     nn.Linear(512, 1)).to(device)
+    >>>
+    >>> criterion = nn.MSELoss()
+    >>> optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+    >>>
+    >>> # Training loop for 100 epochs
+    >>> epochs = 100
+    >>> for epoch in range(epochs):
+    >>>     # model.train()
+    >>>     optimizer.zero_grad()
+    >>>     y_pred = model(x)
+    >>>     loss = criterion(y_pred, y)
+    >>>     loss.backward()
+    >>>     optimizer.step()
+    >>>     
+    >>>     if (epoch + 1) % 20 == 0:  # Print every 20 epochs
+    >>>         print(f'Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+
+    """
     def __init__(self, input_dim, output_dim, scale=1, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True, hadamard=None):
         super(FastFoodLayer, self).__init__()
         # Initialize parameters for Fastfood function
@@ -135,7 +197,8 @@ class FastFoodLayer(nn.Module):
 
         Parameters
         ----------
-        dtype (torch.dtype): The data type for the matrices.
+        dtype: torch.dtype
+            You may specify the precision of your floats. 
         """
         # Device set 
         device = self.device
@@ -171,16 +234,20 @@ class FastFoodLayer(nn.Module):
 
     def forward(self, x):
         """
-        Compute the Fastfood feature map for the given input. 
+        Applies the Fastfood transform to the input tensor to approximate 
+        kernel expansions efficiently in loglinear time.
 
         Parameters
         ----------
-        x : (N, L, H, D)
-            The input tensor.
-        
+        x : torch.Tensor
+            Input tensor of shape (N, L, H, D), where N is the batch size and D 
+            is the input feature dimension.
+
         Returns
         -------
-        Tensor: The transformed tensor after applying the Fastfood feature map.
+        x: torch.Tensor
+            Transformed tensor of shape (N, output_dim), optionally passed through 
+            a cosine-based nonlinearity if enabled.
         """
         x = x.view(-1, 1, self.input_dim)                                # Reshape to [x, 1, input_dim]
         Bx = x * self.B                                                  # Apply binary scaling, broadcast over 2nd dim to [x, m, input_dim]
@@ -200,16 +267,22 @@ class FastFoodLayer(nn.Module):
 
     def phi(self, x):
         """
-        Apply nonlinearity to output.
+        Apply random Fourier feature mapping using cosine transformation.
+
+        This operation adds a random phase shift to the input tensor and applies
+        a cosine nonlinearity, effectively projecting the data into a randomized
+        feature space for kernel approximation.
 
         Parameters
         ----------
-            x (tensor): Input tensor that will be transformed.
+        x: torch.Tensor
+            Input tensor that will be transformed.
         
         Returns
         -------
+        x: torch.Tensor
+            Output tensor of the same shape after normalization.
         """
-
         # Create a uniform distribution between 0 and 2 * pi
         U = 2 * torch.pi * torch.rand(self.output_dim, device=self.device)
 

@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from fastfood_torch.transforms import FastFoodLayer, RKSLayer
+from torchfry.transforms import FastFoodLayer, RKSLayer
 
 class LeNet(nn.Module):
     def __init__(self, projection_layer=FastFoodLayer, features=1024, proj_args={}):

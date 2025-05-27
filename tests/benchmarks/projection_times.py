@@ -39,7 +39,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
-from fastfood_torch.transforms import FastFoodLayer, RKSLayer
+from torchfry.transforms import FastFoodLayer, RKSLayer
 import time  
 import torch
 

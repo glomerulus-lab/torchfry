@@ -1,0 +1,13 @@
+Automatically make .rst files. Run this command in ./docs/source
+sphinx-apidoc -o . ../../fastfood_torch/transforms/FastFoodLayer.py
+sphinx-apidoc -o . ../../fastfood_torch/transforms/RKSLayer.py
+sphinx-apidoc -o . ../../fastfood_torch/networks/MLP.py
+sphinx-apidoc -o . ../../fastfood_torch/networks/VGG.py
+sphinx-apidoc -o . ../../fastfood_torch/networks/LeNet.py
+
+
+To build the sphinx html files. Run this command in ./docs
+sphinx-build -b html . build
+
+To clean all .rst files: 
+Get-ChildItem *.rst | Where-Object { $_.Name -ne "index.rst" } | Remove-Item

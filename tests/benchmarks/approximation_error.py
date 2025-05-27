@@ -37,7 +37,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.kernel_approximation import RBFSampler
-from fastfood_torch.transforms import FastFoodLayer, RKSLayer
+from torchfry.transforms import FastFoodLayer, RKSLayer
 
 def exact_rbf_kernel(x, exact, output_dims):
     #rks error

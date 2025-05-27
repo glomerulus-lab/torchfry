@@ -20,8 +20,8 @@ from torchvision import datasets, transforms
 import torch.nn as nn
 import torch.optim as optim
 import time
-from fastfood_torch.networks import MLP
-from fastfood_torch.transforms import FastFoodLayer, RKSLayer
+from torchfry.networks import MLP
+from torchfry.transforms import FastFoodLayer, RKSLayer
 
 # Device for operations
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

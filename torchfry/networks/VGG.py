@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-from fastfood_torch.transforms import FastFoodLayer, RKSLayer
+from torchfry.transforms import FastFoodLayer, RKSLayer
 
 class VGG(nn.Module):
     def __init__(self, projection_layer=FastFoodLayer, input_shape=(3, 32, 32), features=512, num_classes=10, proj_args=None):

@@ -19,8 +19,8 @@ import os
 from torchvision import datasets, transforms
 import torch.nn as nn
 import time
-from fastfood_torch.networks import VGG
-from fastfood_torch.transforms import FastFoodLayer, RKSLayer
+from torchfry.networks import VGG
+from torchfry.transforms import FastFoodLayer, RKSLayer
 
 # Device for operations
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
