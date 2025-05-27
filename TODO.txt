@@ -1,0 +1,21 @@
+package name is not current
+add link to repo
+add links to the cited papers in front page
+besides kernel methods, random feature layers (cite Deep fried convnet paper)
+test results not needed
+subclass hadamard matmul from nn.module
+module naming issues - torchfry
+networks submodule:
+- explain which are for MNIST vs CIFAR10 datasets
+- give the architecture, e.g `Conv-BN-Conv-BN-FC-FC-FC`
+transforms submodule:
+- beef up hadamard options documentation
+- clarify that nonlinearity is for kernel methods
+- in notes make clear that the function computes Vx or cos(Vx + u) 
+- change epochs to 10 and show output
+- maybe another sentence explaining matmul version
+- pytorch: divide-and-conquer, explain where this came from
+RKSLayer
+- say this is just a linear layer if no nonlinearity and matched scale to FastFood layer
+- add nonlinearity to parameters docs
+- same deal, print output in example

@@ -25,6 +25,7 @@ def hadamard_transform_pytorch(u, normalize=False):
 
     References
     ----------
+    We used code from these repos to construct our Hadamard matrix quickly. 
     .. [1] https://github.com/HazyResearch/structured-nets
     .. [2] https://github.com/cs1160701/OnLearningTheKernel
     """
@@ -61,17 +62,17 @@ class FastFoodLayer(nn.Module):
 
     This layer approximates a dense random projection using the Fastfood algorithm,
     which utilizes structured matrices (Hadamard, diagonal random, permutation matrices) 
-    to reduce time complexity from Random Kitchen Sink's O(nd) to O(n log d) and space 
-    complexity from O(n^2) to O(n), where d is the input_dim and n is the output_dim.
+    to reduce time complexity from Random Kitchen Sink's :math:`O(nd)` to :math:`O(n \log d)` and space 
+    complexity from :math:`O(n^2)` to :math:`O(n)`, where :math:`d` is the input_dim and :math:`n` is the output_dim.
 
     Parameters
     ----------
         input_dim: int 
-            The input data feature dimension.
+            The input data feature dimension. (d)
         output_dim: int
-            The output dimension to be projected into.
+            The output dimension to be projected into. (n)
         scale: float
-            Scalar factor for normalization
+            Scalar factor for normalization. (:math: `\sigma`)
         learn_S: bool
             If S matrix is to be learnable
         learn_G: bool
@@ -90,22 +91,22 @@ class FastFoodLayer(nn.Module):
 
         V = \\frac{1}{\\sigma \\sqrt{d}} SHG \\Pi HB
 
-    :math:`\mathbf{S}`: Scaling matrix, allows our rows of V to be independent of one another.  
-    For Fastfood, this helps us match the radial shape from an RBF Kernel.
+    :math:`S`: Diagonal scaling matrix, allows our rows of V to be independent of one another.  
+    For fastfood, this helps us match the radial shape from an RBF Kernel.
 
-    :math:`\mathbf{H}`: Hadamard Function is a square symmetric matrix of 1 and -1 where each  
+    :math:`H`: Hadamard function is a square symmetric matrix of 1 and -1 where each  
     column is orthogonal. Our package ships with three options for Hadamard: Matmul, Dao, and Torch.
 
-    :math:`\mathbf{G}`:
-    Diagonal Gaussian Matrix. Data sampled from a normal distribution with variance  
+    :math:`G`:
+    Diagonal Gaussian matrix. Data sampled from a normal distribution with variance  
     proportional to the dimension of the input data.
 
-    :math:`\mathbf{\Pi}`:
+    :math:`\Pi`:
     Applies a permutation to randomize the order of the rows. After the second  
     Hadamard is applied, the rows are independent of one another.
 
-    :math:`\mathbf{B}`:
-    Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.
+    :math:`B`:
+    Diagonal binary matrix, drawn from a {-1,+1}, helps input data become dense.
  
 
             
@@ -234,8 +235,7 @@ class FastFoodLayer(nn.Module):
 
     def forward(self, x):
         """
-        Applies the Fastfood transform to the input tensor to approximate 
-        kernel expansions efficiently in loglinear time.
+        Applies the Fastfood transform to the input tensor.
 
         Parameters
         ----------

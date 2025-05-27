@@ -45,9 +45,9 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="FastFoodLayer.html">FastFoodLayer</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">RKSLayer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#fastfood_torch.transforms.RKSLayer.RKSLayer"><code class="docutils literal notranslate"><span class="pre">RKSLayer</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#fastfood_torch.transforms.RKSLayer.RKSLayer.forward"><code class="docutils literal notranslate"><span class="pre">RKSLayer.forward()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fastfood_torch.transforms.RKSLayer.RKSLayer.phi"><code class="docutils literal notranslate"><span class="pre">RKSLayer.phi()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#torchfry.transforms.RKSLayer.RKSLayer"><code class="docutils literal notranslate"><span class="pre">RKSLayer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#torchfry.transforms.RKSLayer.RKSLayer.forward"><code class="docutils literal notranslate"><span class="pre">RKSLayer.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#torchfry.transforms.RKSLayer.RKSLayer.phi"><code class="docutils literal notranslate"><span class="pre">RKSLayer.phi()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -78,11 +78,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-fastfood_torch.transforms.RKSLayer">
-<span id="rkslayer"></span><h1>RKSLayer<a class="headerlink" href="#module-fastfood_torch.transforms.RKSLayer" title="Link to this heading"></a></h1>
+  <section id="module-torchfry.transforms.RKSLayer">
+<span id="rkslayer"></span><h1>RKSLayer<a class="headerlink" href="#module-torchfry.transforms.RKSLayer" title="Link to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.RKSLayer.RKSLayer">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastfood_torch.transforms.RKSLayer.</span></span><span class="sig-name descname"><span class="pre">RKSLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_G</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinearity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/RKSLayer.html#RKSLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.RKSLayer.RKSLayer" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.RKSLayer.RKSLayer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchfry.transforms.RKSLayer.</span></span><span class="sig-name descname"><span class="pre">RKSLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_G</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinearity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/RKSLayer.html#RKSLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.RKSLayer.RKSLayer" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
 <p>This layer explicitly builds a dense matrix of random Gaussian noise.</p>
 <dl class="field-list simple">
@@ -140,8 +140,8 @@
 </pre></div>
 </div>
 <dl class="py method">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.RKSLayer.RKSLayer.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/RKSLayer.html#RKSLayer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.RKSLayer.RKSLayer.forward" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.RKSLayer.RKSLayer.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/RKSLayer.html#RKSLayer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.RKSLayer.RKSLayer.forward" title="Link to this definition"></a></dt>
 <dd><p>The forward function for the Random Kitchen Sink function.
 It is a matrix multiplication with the G matrix. Then an optional
 phi nonlinearity is applied.</p>
@@ -161,8 +161,8 @@ and optional nonlinearity.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.RKSLayer.RKSLayer.phi">
-<span class="sig-name descname"><span class="pre">phi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/RKSLayer.html#RKSLayer.phi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.RKSLayer.RKSLayer.phi" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.RKSLayer.RKSLayer.phi">
+<span class="sig-name descname"><span class="pre">phi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/RKSLayer.html#RKSLayer.phi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.RKSLayer.RKSLayer.phi" title="Link to this definition"></a></dt>
 <dd><p>Apply random Fourier feature mapping using cosine transformation.</p>
 <p>This operation adds a random phase shift to the input tensor and applies
 a cosine nonlinearity, effectively projecting the data into a randomized

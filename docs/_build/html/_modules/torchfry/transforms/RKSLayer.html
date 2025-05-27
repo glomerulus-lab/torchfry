@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>torchfry.transforms.RKSLayer &mdash; Fastfood Spring 2025 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=c4a7d8b7"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Fastfood
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../FastFoodLayer.html">FastFoodLayer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../RKSLayer.html">RKSLayer</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Fastfood</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">torchfry.transforms.RKSLayer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for torchfry.transforms.RKSLayer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+<div class="viewcode-block" id="RKSLayer">
+<a class="viewcode-back" href="../../../RKSLayer.html#torchfry.transforms.RKSLayer.RKSLayer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RKSLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This layer explicitly builds a dense matrix of random Gaussian noise. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">        input_dim: int </span>
+<span class="sd">            The input dimension of the features.</span>
+<span class="sd">        output_dim: int </span>
+<span class="sd">            The desired output dimension of the layer.</span>
+<span class="sd">        scale: float </span>
+<span class="sd">            Scalar factor for normalization</span>
+<span class="sd">        learn_G: bool </span>
+<span class="sd">            If True, allows the Random Gaussian Matrix G to be learnable.</span>
+<span class="sd">        device: torch.device</span>
+<span class="sd">            The device on which to allocate the parameters.</span>
+<span class="sd">    </span>
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] Le, Q., Sarlós, T., &amp; Smola, A. (2018). Fastfood: Approximate Kernel Expansions in Loglinear Time.</span>
+<span class="sd">        https://arxiv.org/pdf/1408.3060</span>
+<span class="sd">    </span>
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    A simple example of the Random Kitchen Sink Layer on a linear regression dataset with noise.</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; import torch.nn as nn</span>
+<span class="sd">    &gt;&gt;&gt; from fastfood_torch.transforms import RKSLayer</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; device = torch.device(&#39;cuda:0&#39;) if torch.cuda.is_available() else torch.device(&#39;cpu&#39;)</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; # Linear regression with noise</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.randn(128, 1, device=device)</span>
+<span class="sd">    &gt;&gt;&gt; y = 2*x + 3 + 0.1*torch.randn(128, 1, device=device)</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; model = nn.Sequential(</span>
+<span class="sd">    &gt;&gt;&gt;     RKSLayer(1, 512, scale=1, learn_G=True, device=device),</span>
+<span class="sd">    &gt;&gt;&gt;     RKSLayer(512, 512, scale=1, learn_G=True, device=device),</span>
+<span class="sd">    &gt;&gt;&gt;     nn.Linear(512, 1)</span>
+<span class="sd">    &gt;&gt;&gt; ).to(device)</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; criterion = nn.MSELoss()</span>
+<span class="sd">    &gt;&gt;&gt; optimizer = torch.optim.SGD(model.parameters(), lr=0.001)</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; # Training loop for 100 epochs</span>
+<span class="sd">    &gt;&gt;&gt; epochs = 100</span>
+<span class="sd">    &gt;&gt;&gt; for epoch in range(epochs):</span>
+<span class="sd">    &gt;&gt;&gt;     # model.train()</span>
+<span class="sd">    &gt;&gt;&gt;     optimizer.zero_grad()</span>
+<span class="sd">    &gt;&gt;&gt;     y_pred = model(x)</span>
+<span class="sd">    &gt;&gt;&gt;     loss = criterion(y_pred, y)</span>
+<span class="sd">    &gt;&gt;&gt;     loss.backward()</span>
+<span class="sd">    &gt;&gt;&gt;     optimizer.step()</span>
+<span class="sd">    &gt;&gt;&gt;     </span>
+<span class="sd">    &gt;&gt;&gt;     if (epoch + 1) % 20 == 0:  # Print every 20 epochs</span>
+<span class="sd">    &gt;&gt;&gt;         print(f&#39;Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">learn_G</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RKSLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">input_dim</span>       <span class="c1"># Data input dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>               <span class="c1"># Non linearity requirement</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learn_G</span> <span class="o">=</span> <span class="n">learn_G</span>           <span class="c1"># Param for learning weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>     <span class="c1"># Projection dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>             <span class="c1"># GPU or CPU   </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity</span> <span class="o">=</span> <span class="n">nonlinearity</span> <span class="c1"># Desired internal nonlinearity</span>
+
+        <span class="c1"># If Gaussian is learnable</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">learn_G</span><span class="p">:</span>
+            <span class="c1"># Make G learnable with normal initialization</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Use a fixed random Gaussian matrix for G</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">((</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RKSLayer.phi">
+<a class="viewcode-back" href="../../../RKSLayer.html#torchfry.transforms.RKSLayer.RKSLayer.phi">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">phi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply random Fourier feature mapping using cosine transformation.</span>
+
+<span class="sd">        This operation adds a random phase shift to the input tensor and applies</span>
+<span class="sd">        a cosine nonlinearity, effectively projecting the data into a randomized</span>
+<span class="sd">        feature space for kernel approximation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x: torch.tensor</span>
+<span class="sd">            Input tensor that will be transformed.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        x: torch.tensor</span>
+<span class="sd">            Output tensor of the same shape after normalization.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create a uniform distribution between 0 and 2 * pi</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># Add the uniform distribution to x</span>
+        <span class="c1"># Out of place: x = x + u</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+
+        <span class="c1"># Apply the cosine function to x, adding U for randomness</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cos_</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Normalization</span>
+        <span class="c1"># Out of place: x = x * math.sqrt(2.0 / self.output_dim)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+    
+
+<div class="viewcode-block" id="RKSLayer.forward">
+<a class="viewcode-back" href="../../../RKSLayer.html#torchfry.transforms.RKSLayer.RKSLayer.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The forward function for the Random Kitchen Sink function.</span>
+<span class="sd">        It is a matrix multiplication with the G matrix. Then an optional</span>
+<span class="sd">        phi nonlinearity is applied. </span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x: torch.Tensor</span>
+<span class="sd">            Input tensor of shape (N, L, H, D), where N is the batch size </span>
+<span class="sd">            and D is the input feature dimension.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X: torch.Tensor</span>
+<span class="sd">            Transformed tensor of shape (N, L, H, output_dim) after projection </span>
+<span class="sd">            and optional nonlinearity.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Project and add offset</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonlinearity</span><span class="p">:</span>            <span class="c1"># If desired internal nonlinearity</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>    <span class="c1"># Nonlinearity</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

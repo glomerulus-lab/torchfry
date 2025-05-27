@@ -46,17 +46,17 @@
               <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">FastFoodLayer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.forward"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer.forward()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.new_feature_map"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer.new_feature_map()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.phi"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer.phi()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.forward"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.new_feature_map"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer.new_feature_map()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.phi"><code class="docutils literal notranslate"><span class="pre">FastFoodLayer.phi()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.hadamard_transform_matmul"><code class="docutils literal notranslate"><span class="pre">hadamard_transform_matmul</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.hadamard_transform_matmul.forward"><code class="docutils literal notranslate"><span class="pre">hadamard_transform_matmul.forward()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.hadamard_transform_matmul"><code class="docutils literal notranslate"><span class="pre">hadamard_transform_matmul</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.hadamard_transform_matmul.forward"><code class="docutils literal notranslate"><span class="pre">hadamard_transform_matmul.forward()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#fastfood_torch.transforms.FastFoodLayer.hadamard_transform_pytorch"><code class="docutils literal notranslate"><span class="pre">hadamard_transform_pytorch()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#torchfry.transforms.FastFoodLayer.hadamard_transform_pytorch"><code class="docutils literal notranslate"><span class="pre">hadamard_transform_pytorch()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="RKSLayer.html">RKSLayer</a></li>
@@ -86,11 +86,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-fastfood_torch.transforms.FastFoodLayer">
-<span id="fastfoodlayer"></span><h1>FastFoodLayer<a class="headerlink" href="#module-fastfood_torch.transforms.FastFoodLayer" title="Link to this heading"></a></h1>
+  <section id="module-torchfry.transforms.FastFoodLayer">
+<span id="fastfoodlayer"></span><h1>FastFoodLayer<a class="headerlink" href="#module-torchfry.transforms.FastFoodLayer" title="Link to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.FastFoodLayer">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastfood_torch.transforms.FastFoodLayer.</span></span><span class="sig-name descname"><span class="pre">FastFoodLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_S</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_G</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_B</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinearity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hadamard</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#FastFoodLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.FastFoodLayer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchfry.transforms.FastFoodLayer.</span></span><span class="sig-name descname"><span class="pre">FastFoodLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_S</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_G</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learn_B</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinearity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hadamard</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#FastFoodLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
 <p>Implementation of Fastfood transformation layer for efficient random feature mapping.</p>
 <p>This layer approximates a dense random projection using the Fastfood algorithm,
@@ -170,8 +170,8 @@ Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.</p>
 </pre></div>
 </div>
 <dl class="py method">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#FastFoodLayer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.forward" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.FastFoodLayer.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#FastFoodLayer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.forward" title="Link to this definition"></a></dt>
 <dd><p>Applies the Fastfood transform to the input tensor to approximate
 kernel expansions efficiently in loglinear time.</p>
 <dl class="field-list simple">
@@ -190,8 +190,8 @@ a cosine-based nonlinearity if enabled.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.new_feature_map">
-<span class="sig-name descname"><span class="pre">new_feature_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#FastFoodLayer.new_feature_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.new_feature_map" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.FastFoodLayer.new_feature_map">
+<span class="sig-name descname"><span class="pre">new_feature_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#FastFoodLayer.new_feature_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.new_feature_map" title="Link to this definition"></a></dt>
 <dd><p>Sample new permutation and scaling matrices for the Fastfood feature map.</p>
 <p>This function initializes the permutation matrix P, the binary scaling
 matrix B, the Gaussian scaling matrix G, and the scaling matrix S based
@@ -204,8 +204,8 @@ on the learnable parameters.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.phi">
-<span class="sig-name descname"><span class="pre">phi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#FastFoodLayer.phi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.FastFoodLayer.phi" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.FastFoodLayer.phi">
+<span class="sig-name descname"><span class="pre">phi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#FastFoodLayer.phi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.phi" title="Link to this definition"></a></dt>
 <dd><p>Apply random Fourier feature mapping using cosine transformation.</p>
 <p>This operation adds a random phase shift to the input tensor and applies
 a cosine nonlinearity, effectively projecting the data into a randomized
@@ -226,10 +226,11 @@ feature space for kernel approximation.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.hadamard_transform_matmul">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">fastfood_torch.transforms.FastFoodLayer.</span></span><span class="sig-name descname"><span class="pre">hadamard_transform_matmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#hadamard_transform_matmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.hadamard_transform_matmul" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.hadamard_transform_matmul">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchfry.transforms.FastFoodLayer.</span></span><span class="sig-name descname"><span class="pre">hadamard_transform_matmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#hadamard_transform_matmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.hadamard_transform_matmul" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Hadamard Transform using explicit Hadamard matrix instantiation and matrix multiplication.</p>
+<p>This Hadamard transformation explicitly stores the Hadamard matrix, then performs matrix multiplication
+to complete the transformation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -239,15 +240,15 @@ feature space for kernel approximation.</p>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.hadamard_transform_matmul.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#hadamard_transform_matmul.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.hadamard_transform_matmul.forward" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.hadamard_transform_matmul.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#hadamard_transform_matmul.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.hadamard_transform_matmul.forward" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="fastfood_torch.transforms.FastFoodLayer.hadamard_transform_pytorch">
-<span class="sig-prename descclassname"><span class="pre">fastfood_torch.transforms.FastFoodLayer.</span></span><span class="sig-name descname"><span class="pre">hadamard_transform_pytorch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fastfood_torch/transforms/FastFoodLayer.html#hadamard_transform_pytorch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#fastfood_torch.transforms.FastFoodLayer.hadamard_transform_pytorch" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.hadamard_transform_pytorch">
+<span class="sig-prename descclassname"><span class="pre">torchfry.transforms.FastFoodLayer.</span></span><span class="sig-name descname"><span class="pre">hadamard_transform_pytorch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#hadamard_transform_pytorch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.hadamard_transform_pytorch" title="Link to this definition"></a></dt>
 <dd><p>Multiply H_n &#64; u where H_n is the Hadamard matrix of dimension n x n.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
