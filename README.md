@@ -1,8 +1,8 @@
 <h1>
-  Fastfood Torch
+  Torched and Fried
 </h1>
 
-Fastfood Torch is a software package that implements the Fastfood algorithm (Le, Sarlos, Smola, [2013](https://arxiv.org/abs/1408.3060)) and Random Kitchen Sink algorithm (Rahimi, Recht, [2007](https://dl.acm.org/doi/10.5555/2981562.2981710)) as custom PyTorch layers for use in different networks for more efficient kernel approximation. It is distributed under MIT License.
+Torched and Fried (torchfry) is a software package that implements the Fastfood algorithm (Le, Sarlos, Smola, [2013](https://arxiv.org/abs/1408.3060)) and Random Kitchen Sink algorithm (Rahimi, Recht, [2007](https://dl.acm.org/doi/10.5555/2981562.2981710)) as custom PyTorch layers for use in different networks for more efficient kernel approximation. It is distributed under MIT License.
 
 The performance of these layers are tested against each other in different networks with various hyperparameters, primarily on MNIST, Fashion MNIST, and CIFAR-10 datasets.
 
