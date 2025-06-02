@@ -96,13 +96,12 @@ original_config = config.copy()
 # Define data transformations and load datasets
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,)),
-    transforms.Pad(2, padding_mode="edge")
+    transforms.Normalize((0.5,), (0.5,))
 ])
-trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
-testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], shuffle=True)
-testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], shuffle=False)
+trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=config["mb"], num_workers=2, shuffle=True)
+testloader = torch.utils.data.DataLoader(testset, batch_size=config["mb"], num_workers=2, shuffle=False)
 
 # Initialize a dictionary to store results for the current configuration
 results = {
@@ -130,7 +129,7 @@ for trial in range(trials):
 
     # Initialize the model with specified parameters
     model = MLP(
-        input_dim=1024, 
+        input_dim=3072, 
         classes=10, 
         widths=widths, 
         layer=projection, 
@@ -230,8 +229,8 @@ if not os.path.exists("results"):
     os.makedirs("results")
 
 # Save all experiment results to a JSON file
-result_path = os.path.join("results", f"{args.filename}")
+result_path = os.path.join("results", f"{args.save}")
 with open(result_path, "w") as f:
     json.dump(all_results, f, indent=4)
 
-print(f"Runs complete, saved to {args.filename}")
+print(f"Runs complete, saved to {args.save}")

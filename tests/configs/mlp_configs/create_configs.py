@@ -11,7 +11,7 @@ base_config = {
     "scale": 0.1,
     "lr": 0.001,
     "mb": 512,
-    "epochs": 20,
+    "epochs": 200,
     "trials": 10,
     "widths": [8192, 8192, 8192],
     "nonlinearity": False,

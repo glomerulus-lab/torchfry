@@ -15,13 +15,13 @@ class LeNet(nn.Module):
         super(LeNet, self).__init__()
         
         # Convolutional layers matching Caffe definition
-        self.conv1 = nn.Conv2d(1, 20, kernel_size=5, stride=1)
+        self.conv1 = nn.Conv2d(3, 20, kernel_size=5, stride=1)
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv2 = nn.Conv2d(20, 50, kernel_size=5, stride=1)
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
         
         # Calculate flattened size after convolutions
-        self.flattened_size = 50 * 4 * 4
+        self.flattened_size = 50 * 5 * 5
         
         # Replace FC layer with projection layer
         self.projection = projection_layer(

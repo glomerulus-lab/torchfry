@@ -8,11 +8,10 @@ from itertools import product
 
 # Base shared configuration
 base_config = {
-    "layer": "FastFoodLayer",
     "scale": 0.1,
     "lr": 0.0001,
     "mb": 512,
-    "epochs": 20,
+    "epochs": 200,
     "trials": 10,
     "features": 2048,
     "nonlinearity": False
