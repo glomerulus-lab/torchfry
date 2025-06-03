@@ -12,3 +12,4 @@ tests/results
 *.egg-info
 __pycache__
 *.pyc
+TODO.txt

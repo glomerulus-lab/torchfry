@@ -99,8 +99,10 @@
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
-<span class="sd">    .. [1] https://github.com/HazyResearch/structured-nets</span>
-<span class="sd">    .. [2] https://github.com/cs1160701/OnLearningTheKernel</span>
+<span class="sd">    We used code from these repos to construct our Hadamard matrix quickly. </span>
+
+<span class="sd">    https://github.com/HazyResearch/structured-nets  </span>
+<span class="sd">    https://github.com/cs1160701/OnLearningTheKernel</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
@@ -144,17 +146,17 @@
 
 <span class="sd">    This layer approximates a dense random projection using the Fastfood algorithm,</span>
 <span class="sd">    which utilizes structured matrices (Hadamard, diagonal random, permutation matrices) </span>
-<span class="sd">    to reduce time complexity from Random Kitchen Sink&#39;s O(nd) to O(n log d) and space </span>
-<span class="sd">    complexity from O(n^2) to O(n), where d is the input_dim and n is the output_dim.</span>
+<span class="sd">    to reduce time complexity from Random Kitchen Sink&#39;s :math:`O(nd)` to :math:`O(n \log d)` and space </span>
+<span class="sd">    complexity from :math:`O(n^2)` to :math:`O(n)`, where :math:`d` is the input_dim and :math:`n` is the output_dim.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">        input_dim: int </span>
-<span class="sd">            The input data feature dimension.</span>
+<span class="sd">            The input data feature dimension. (d)</span>
 <span class="sd">        output_dim: int</span>
-<span class="sd">            The output dimension to be projected into.</span>
+<span class="sd">            The output dimension to be projected into. (n)</span>
 <span class="sd">        scale: float</span>
-<span class="sd">            Scalar factor for normalization</span>
+<span class="sd">            Scalar factor for normalization. (:math:`\sigma`)</span>
 <span class="sd">        learn_S: bool</span>
 <span class="sd">            If S matrix is to be learnable</span>
 <span class="sd">        learn_G: bool</span>
@@ -164,33 +166,38 @@
 <span class="sd">        device: torch.device</span>
 <span class="sd">            The device on which computations will be performed</span>
 <span class="sd">        nonlinearity: bool</span>
-<span class="sd">            If internal nonlinearity is used, or defered</span>
+<span class="sd">            Internal nonlinearity is used for kernel methods.</span>
 <span class="sd">        hadamard: str</span>
 <span class="sd">            Type of hadamard function desired, Dao, Recursive FWHT, or matrix mul. (&quot;Dao&quot;, &quot;Matmul&quot;, &quot;Torch&quot;)</span>
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    .. math::</span>
 
-<span class="sd">        V = \\frac{1}{\\sigma \\sqrt{d}} SHG \\Pi HB</span>
+<span class="sd">        Vx = \\frac{1}{\\sigma \\sqrt{d}} SHG \\Pi HB</span>
 
-<span class="sd">    :math:`\mathbf{S}`: Scaling matrix, allows our rows of V to be independent of one another.  </span>
-<span class="sd">    For Fastfood, this helps us match the radial shape from an RBF Kernel.</span>
+<span class="sd">    :math:`S`: Diagonal scaling matrix, allows our rows of V to be independent of one another.  </span>
+<span class="sd">    For fastfood, this helps us match the radial shape from an RBF Kernel.</span>
 
-<span class="sd">    :math:`\mathbf{H}`: Hadamard Function is a square symmetric matrix of 1 and -1 where each  </span>
+<span class="sd">    :math:`H`: Hadamard function is a square symmetric matrix of 1 and -1 where each  </span>
 <span class="sd">    column is orthogonal. Our package ships with three options for Hadamard: Matmul, Dao, and Torch.</span>
 
-<span class="sd">    :math:`\mathbf{G}`:</span>
-<span class="sd">    Diagonal Gaussian Matrix. Data sampled from a normal distribution with variance  </span>
+<span class="sd">    :math:`G`:</span>
+<span class="sd">    Diagonal Gaussian matrix. Data sampled from a normal distribution with variance  </span>
 <span class="sd">    proportional to the dimension of the input data.</span>
 
-<span class="sd">    :math:`\mathbf{\Pi}`:</span>
+<span class="sd">    :math:`\Pi`:</span>
 <span class="sd">    Applies a permutation to randomize the order of the rows. After the second  </span>
 <span class="sd">    Hadamard is applied, the rows are independent of one another.</span>
 
-<span class="sd">    :math:`\mathbf{B}`:</span>
-<span class="sd">    Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.</span>
-<span class="sd"> </span>
+<span class="sd">    :math:`B`:</span>
+<span class="sd">    Diagonal binary matrix, drawn from a {-1,+1}, helps input data become dense.</span>
 
+<span class="sd">    When nonlinearity is used, the layer is computed as: </span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \cos(Vx + u)</span>
+<span class="sd"> </span>
 <span class="sd">            </span>
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
@@ -203,7 +210,7 @@
 
 <span class="sd">    &gt;&gt;&gt; import torch</span>
 <span class="sd">    &gt;&gt;&gt; import torch.nn as nn</span>
-<span class="sd">    &gt;&gt;&gt; from fastfood_torch.transforms import FastFoodLayer</span>
+<span class="sd">    &gt;&gt;&gt; from torchfry.transforms import FastFoodLayer</span>
 <span class="sd">    &gt;&gt;&gt;</span>
 <span class="sd">    &gt;&gt;&gt; device = torch.device(&#39;cuda:0&#39;) if torch.cuda.is_available() else torch.device(&#39;cpu&#39;)</span>
 <span class="sd">    &gt;&gt;&gt;</span>
@@ -219,8 +226,8 @@
 <span class="sd">    &gt;&gt;&gt; criterion = nn.MSELoss()</span>
 <span class="sd">    &gt;&gt;&gt; optimizer = torch.optim.SGD(model.parameters(), lr=0.001)</span>
 <span class="sd">    &gt;&gt;&gt;</span>
-<span class="sd">    &gt;&gt;&gt; # Training loop for 100 epochs</span>
-<span class="sd">    &gt;&gt;&gt; epochs = 100</span>
+<span class="sd">    &gt;&gt;&gt; # Training loop for 10 epochs</span>
+<span class="sd">    &gt;&gt;&gt; epochs = 10</span>
 <span class="sd">    &gt;&gt;&gt; for epoch in range(epochs):</span>
 <span class="sd">    &gt;&gt;&gt;     # model.train()</span>
 <span class="sd">    &gt;&gt;&gt;     optimizer.zero_grad()</span>
@@ -228,9 +235,17 @@
 <span class="sd">    &gt;&gt;&gt;     loss = criterion(y_pred, y)</span>
 <span class="sd">    &gt;&gt;&gt;     loss.backward()</span>
 <span class="sd">    &gt;&gt;&gt;     optimizer.step()</span>
-<span class="sd">    &gt;&gt;&gt;     </span>
-<span class="sd">    &gt;&gt;&gt;     if (epoch + 1) % 20 == 0:  # Print every 20 epochs</span>
-<span class="sd">    &gt;&gt;&gt;         print(f&#39;Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}&#39;)</span>
+<span class="sd">    &gt;&gt;&gt;     print(f&#39;Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}&#39;)</span>
+<span class="sd">    Epoch [1/10], Loss: 14.2901</span>
+<span class="sd">    Epoch [2/10], Loss: 14.2365</span>
+<span class="sd">    Epoch [3/10], Loss: 14.2638</span>
+<span class="sd">    Epoch [4/10], Loss: 14.2251</span>
+<span class="sd">    Epoch [5/10], Loss: 14.2316</span>
+<span class="sd">    Epoch [6/10], Loss: 14.0655</span>
+<span class="sd">    Epoch [7/10], Loss: 14.0691</span>
+<span class="sd">    Epoch [8/10], Loss: 14.0698</span>
+<span class="sd">    Epoch [9/10], Loss: 14.0007</span>
+<span class="sd">    Epoch [10/10], Loss: 13.9704</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">learn_S</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">learn_G</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">learn_B</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">hadamard</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -322,8 +337,7 @@
 <a class="viewcode-back" href="../../../FastFoodLayer.html#torchfry.transforms.FastFoodLayer.FastFoodLayer.forward">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Applies the Fastfood transform to the input tensor to approximate </span>
-<span class="sd">        kernel expansions efficiently in loglinear time.</span>
+<span class="sd">        Applies the Fastfood transform to the input tensor.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>

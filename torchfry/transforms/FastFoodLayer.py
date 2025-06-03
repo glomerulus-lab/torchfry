@@ -26,8 +26,9 @@ def hadamard_transform_pytorch(u, normalize=False):
     References
     ----------
     We used code from these repos to construct our Hadamard matrix quickly. 
-    .. [1] https://github.com/HazyResearch/structured-nets
-    .. [2] https://github.com/cs1160701/OnLearningTheKernel
+
+    https://github.com/HazyResearch/structured-nets  
+    https://github.com/cs1160701/OnLearningTheKernel
     """
     n = u.shape[-1]
     m = int(np.log2(n))
@@ -72,7 +73,7 @@ class FastFoodLayer(nn.Module):
         output_dim: int
             The output dimension to be projected into. (n)
         scale: float
-            Scalar factor for normalization. (:math: `\sigma`)
+            Scalar factor for normalization. (:math:`\sigma`)
         learn_S: bool
             If S matrix is to be learnable
         learn_G: bool
@@ -82,14 +83,14 @@ class FastFoodLayer(nn.Module):
         device: torch.device
             The device on which computations will be performed
         nonlinearity: bool
-            If internal nonlinearity is used, or defered
+            Internal nonlinearity is used for kernel methods.
         hadamard: str
             Type of hadamard function desired, Dao, Recursive FWHT, or matrix mul. ("Dao", "Matmul", "Torch")
     Notes
     -----
     .. math::
 
-        V = \\frac{1}{\\sigma \\sqrt{d}} SHG \\Pi HB
+        Vx = \\frac{1}{\\sigma \\sqrt{d}} SHG \\Pi HB
 
     :math:`S`: Diagonal scaling matrix, allows our rows of V to be independent of one another.  
     For fastfood, this helps us match the radial shape from an RBF Kernel.
@@ -107,8 +108,13 @@ class FastFoodLayer(nn.Module):
 
     :math:`B`:
     Diagonal binary matrix, drawn from a {-1,+1}, helps input data become dense.
- 
 
+    When nonlinearity is used, the layer is computed as: 
+
+    .. math::
+
+        \cos(Vx + u)
+ 
             
     References
     ----------
@@ -121,7 +127,7 @@ class FastFoodLayer(nn.Module):
 
     >>> import torch
     >>> import torch.nn as nn
-    >>> from fastfood_torch.transforms import FastFoodLayer
+    >>> from torchfry.transforms import FastFoodLayer
     >>>
     >>> device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     >>>
@@ -137,8 +143,8 @@ class FastFoodLayer(nn.Module):
     >>> criterion = nn.MSELoss()
     >>> optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
     >>>
-    >>> # Training loop for 100 epochs
-    >>> epochs = 100
+    >>> # Training loop for 10 epochs
+    >>> epochs = 10
     >>> for epoch in range(epochs):
     >>>     # model.train()
     >>>     optimizer.zero_grad()
@@ -146,9 +152,17 @@ class FastFoodLayer(nn.Module):
     >>>     loss = criterion(y_pred, y)
     >>>     loss.backward()
     >>>     optimizer.step()
-    >>>     
-    >>>     if (epoch + 1) % 20 == 0:  # Print every 20 epochs
-    >>>         print(f'Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+    >>>     print(f'Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+    Epoch [1/10], Loss: 14.2901
+    Epoch [2/10], Loss: 14.2365
+    Epoch [3/10], Loss: 14.2638
+    Epoch [4/10], Loss: 14.2251
+    Epoch [5/10], Loss: 14.2316
+    Epoch [6/10], Loss: 14.0655
+    Epoch [7/10], Loss: 14.0691
+    Epoch [8/10], Loss: 14.0698
+    Epoch [9/10], Loss: 14.0007
+    Epoch [10/10], Loss: 13.9704
 
     """
     def __init__(self, input_dim, output_dim, scale=1, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True, hadamard=None):

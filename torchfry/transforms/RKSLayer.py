@@ -4,7 +4,8 @@ import torch.nn as nn
 
 class RKSLayer(nn.Module):
     """
-    This layer explicitly builds a dense matrix of random Gaussian noise. 
+    This layer explicitly builds a dense matrix of random Gaussian noise. Without the nonlinearity,
+    this is simply a linear layer.
 
     Parameters
     ----------
@@ -16,6 +17,8 @@ class RKSLayer(nn.Module):
             Scalar factor for normalization
         learn_G: bool 
             If True, allows the Random Gaussian Matrix G to be learnable.
+        nonlinearity: bool
+            Applies the nonlinearity of cos(Vx + u)
         device: torch.device
             The device on which to allocate the parameters.
     
@@ -30,7 +33,7 @@ class RKSLayer(nn.Module):
 
     >>> import torch
     >>> import torch.nn as nn
-    >>> from fastfood_torch.transforms import RKSLayer
+    >>> from torchfry.transforms import RKSLayer
     >>>
     >>> device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     >>>
@@ -47,8 +50,8 @@ class RKSLayer(nn.Module):
     >>> criterion = nn.MSELoss()
     >>> optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
     >>>
-    >>> # Training loop for 100 epochs
-    >>> epochs = 100
+    >>> # Training loop for 10 epochs
+    >>> epochs = 10
     >>> for epoch in range(epochs):
     >>>     # model.train()
     >>>     optimizer.zero_grad()
@@ -56,9 +59,18 @@ class RKSLayer(nn.Module):
     >>>     loss = criterion(y_pred, y)
     >>>     loss.backward()
     >>>     optimizer.step()
-    >>>     
-    >>>     if (epoch + 1) % 20 == 0:  # Print every 20 epochs
-    >>>         print(f'Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+    >>>     print(f'Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}')
+    Epoch [1/10], Loss: 13.3238
+    Epoch [2/10], Loss: 13.1642
+    Epoch [3/10], Loss: 13.3305
+    Epoch [4/10], Loss: 12.9485
+    Epoch [5/10], Loss: 13.1686
+    Epoch [6/10], Loss: 12.8200
+    Epoch [7/10], Loss: 13.2698
+    Epoch [8/10], Loss: 12.9570
+    Epoch [9/10], Loss: 13.0187
+    Epoch [10/10], Loss: 13.1325
+
     """
     def __init__(self, input_dim, output_dim, scale, learn_G=False, device=None, nonlinearity=True):
         super(RKSLayer, self).__init__()

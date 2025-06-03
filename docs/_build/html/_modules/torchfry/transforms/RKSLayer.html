@@ -78,7 +78,8 @@
 <a class="viewcode-back" href="../../../RKSLayer.html#torchfry.transforms.RKSLayer.RKSLayer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RKSLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This layer explicitly builds a dense matrix of random Gaussian noise. </span>
+<span class="sd">    This layer explicitly builds a dense matrix of random Gaussian noise. Without the nonlinearity,</span>
+<span class="sd">    this is simply a linear layer.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -90,6 +91,8 @@
 <span class="sd">            Scalar factor for normalization</span>
 <span class="sd">        learn_G: bool </span>
 <span class="sd">            If True, allows the Random Gaussian Matrix G to be learnable.</span>
+<span class="sd">        nonlinearity: bool</span>
+<span class="sd">            Applies the nonlinearity of cos(Vx + u)</span>
 <span class="sd">        device: torch.device</span>
 <span class="sd">            The device on which to allocate the parameters.</span>
 <span class="sd">    </span>
@@ -104,7 +107,7 @@
 
 <span class="sd">    &gt;&gt;&gt; import torch</span>
 <span class="sd">    &gt;&gt;&gt; import torch.nn as nn</span>
-<span class="sd">    &gt;&gt;&gt; from fastfood_torch.transforms import RKSLayer</span>
+<span class="sd">    &gt;&gt;&gt; from torchfry.transforms import RKSLayer</span>
 <span class="sd">    &gt;&gt;&gt;</span>
 <span class="sd">    &gt;&gt;&gt; device = torch.device(&#39;cuda:0&#39;) if torch.cuda.is_available() else torch.device(&#39;cpu&#39;)</span>
 <span class="sd">    &gt;&gt;&gt;</span>
@@ -121,8 +124,8 @@
 <span class="sd">    &gt;&gt;&gt; criterion = nn.MSELoss()</span>
 <span class="sd">    &gt;&gt;&gt; optimizer = torch.optim.SGD(model.parameters(), lr=0.001)</span>
 <span class="sd">    &gt;&gt;&gt;</span>
-<span class="sd">    &gt;&gt;&gt; # Training loop for 100 epochs</span>
-<span class="sd">    &gt;&gt;&gt; epochs = 100</span>
+<span class="sd">    &gt;&gt;&gt; # Training loop for 10 epochs</span>
+<span class="sd">    &gt;&gt;&gt; epochs = 10</span>
 <span class="sd">    &gt;&gt;&gt; for epoch in range(epochs):</span>
 <span class="sd">    &gt;&gt;&gt;     # model.train()</span>
 <span class="sd">    &gt;&gt;&gt;     optimizer.zero_grad()</span>
@@ -130,9 +133,18 @@
 <span class="sd">    &gt;&gt;&gt;     loss = criterion(y_pred, y)</span>
 <span class="sd">    &gt;&gt;&gt;     loss.backward()</span>
 <span class="sd">    &gt;&gt;&gt;     optimizer.step()</span>
-<span class="sd">    &gt;&gt;&gt;     </span>
-<span class="sd">    &gt;&gt;&gt;     if (epoch + 1) % 20 == 0:  # Print every 20 epochs</span>
-<span class="sd">    &gt;&gt;&gt;         print(f&#39;Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}&#39;)</span>
+<span class="sd">    &gt;&gt;&gt;     print(f&#39;Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}&#39;)</span>
+<span class="sd">    Epoch [1/10], Loss: 13.3238</span>
+<span class="sd">    Epoch [2/10], Loss: 13.1642</span>
+<span class="sd">    Epoch [3/10], Loss: 13.3305</span>
+<span class="sd">    Epoch [4/10], Loss: 12.9485</span>
+<span class="sd">    Epoch [5/10], Loss: 13.1686</span>
+<span class="sd">    Epoch [6/10], Loss: 12.8200</span>
+<span class="sd">    Epoch [7/10], Loss: 13.2698</span>
+<span class="sd">    Epoch [8/10], Loss: 12.9570</span>
+<span class="sd">    Epoch [9/10], Loss: 13.0187</span>
+<span class="sd">    Epoch [10/10], Loss: 13.1325</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">learn_G</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RKSLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>

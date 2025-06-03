@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="RKSLayer" href="RKSLayer.html" />
-    <link rel="prev" title="Fastfood Documentation" href="index.html" /> 
+    <link rel="prev" title="Torch &amp; Fried Documentation" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -95,38 +95,41 @@
 <p>Implementation of Fastfood transformation layer for efficient random feature mapping.</p>
 <p>This layer approximates a dense random projection using the Fastfood algorithm,
 which utilizes structured matrices (Hadamard, diagonal random, permutation matrices)
-to reduce time complexity from Random Kitchen Sink’s O(nd) to O(n log d) and space
-complexity from O(n^2) to O(n), where d is the input_dim and n is the output_dim.</p>
+to reduce time complexity from Random Kitchen Sink’s <span class="math notranslate nohighlight">\(O(nd)\)</span> to <span class="math notranslate nohighlight">\(O(n \log d)\)</span> and space
+complexity from <span class="math notranslate nohighlight">\(O(n^2)\)</span> to <span class="math notranslate nohighlight">\(O(n)\)</span>, where <span class="math notranslate nohighlight">\(d\)</span> is the input_dim and <span class="math notranslate nohighlight">\(n\)</span> is the output_dim.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>input_dim</strong> (<em>int</em>) – The input data feature dimension.</p></li>
-<li><p><strong>output_dim</strong> (<em>int</em>) – The output dimension to be projected into.</p></li>
-<li><p><strong>scale</strong> (<em>float</em>) – Scalar factor for normalization</p></li>
+<li><p><strong>input_dim</strong> (<em>int</em>) – The input data feature dimension. (d)</p></li>
+<li><p><strong>output_dim</strong> (<em>int</em>) – The output dimension to be projected into. (n)</p></li>
+<li><p><strong>scale</strong> (<em>float</em>) – Scalar factor for normalization. (<span class="math notranslate nohighlight">\(\sigma\)</span>)</p></li>
 <li><p><strong>learn_S</strong> (<em>bool</em>) – If S matrix is to be learnable</p></li>
 <li><p><strong>learn_G</strong> (<em>bool</em>) – If G matrix is to be learnable</p></li>
 <li><p><strong>learn_B</strong> (<em>bool</em>) – If B matrix is to be learnable</p></li>
 <li><p><strong>device</strong> (<em>torch.device</em>) – The device on which computations will be performed</p></li>
-<li><p><strong>nonlinearity</strong> (<em>bool</em>) – If internal nonlinearity is used, or defered</p></li>
+<li><p><strong>nonlinearity</strong> (<em>bool</em>) – Internal nonlinearity is used for kernel methods.</p></li>
 <li><p><strong>hadamard</strong> (<em>str</em>) – Type of hadamard function desired, Dao, Recursive FWHT, or matrix mul. (“Dao”, “Matmul”, “Torch”)</p></li>
 </ul>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
 <div class="math notranslate nohighlight">
-\[V = \frac{1}{\sigma \sqrt{d}} SHG \Pi HB\]</div>
-<p><span class="math notranslate nohighlight">\(\mathbf{S}\)</span>: Scaling matrix, allows our rows of V to be independent of one another.
-For Fastfood, this helps us match the radial shape from an RBF Kernel.</p>
-<p><span class="math notranslate nohighlight">\(\mathbf{H}\)</span>: Hadamard Function is a square symmetric matrix of 1 and -1 where each
+\[Vx = \frac{1}{\sigma \sqrt{d}} SHG \Pi HB\]</div>
+<p><span class="math notranslate nohighlight">\(S\)</span>: Diagonal scaling matrix, allows our rows of V to be independent of one another.
+For fastfood, this helps us match the radial shape from an RBF Kernel.</p>
+<p><span class="math notranslate nohighlight">\(H\)</span>: Hadamard function is a square symmetric matrix of 1 and -1 where each
 column is orthogonal. Our package ships with three options for Hadamard: Matmul, Dao, and Torch.</p>
-<p><span class="math notranslate nohighlight">\(\mathbf{G}\)</span>:
-Diagonal Gaussian Matrix. Data sampled from a normal distribution with variance
+<p><span class="math notranslate nohighlight">\(G\)</span>:
+Diagonal Gaussian matrix. Data sampled from a normal distribution with variance
 proportional to the dimension of the input data.</p>
-<p><span class="math notranslate nohighlight">\(\mathbf{\Pi}\)</span>:
+<p><span class="math notranslate nohighlight">\(\Pi\)</span>:
 Applies a permutation to randomize the order of the rows. After the second
 Hadamard is applied, the rows are independent of one another.</p>
-<p><span class="math notranslate nohighlight">\(\mathbf{B}\)</span>:
-Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.</p>
+<p><span class="math notranslate nohighlight">\(B\)</span>:
+Diagonal binary matrix, drawn from a {-1,+1}, helps input data become dense.</p>
+<p>When nonlinearity is used, the layer is computed as:</p>
+<div class="math notranslate nohighlight">
+\[\cos(Vx + u)\]</div>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
 <aside class="footnote brackets" id="id1" role="doc-footnote">
@@ -139,7 +142,7 @@ Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.</p>
 <p>A simple example of the Fastfood layer on a linear regression dataset with noise.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastfood_torch.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastFoodLayer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchfry.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastFoodLayer</span>
 <span class="gp">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt;</span>
@@ -155,8 +158,8 @@ Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">criterion</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Training loop for 100 epochs</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">epochs</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Training loop for 10 epochs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">epochs</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># model.train()</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
@@ -164,16 +167,23 @@ Binary Scaling Matrix, drawn from a {-1,+1}, helps input data become dense.</p>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">20</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Print every 20 epochs</span>
-<span class="gp">&gt;&gt;&gt; </span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Epoch [</span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s1">], Loss: </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Epoch [</span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s1">], Loss: </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="go">Epoch [1/10], Loss: 14.2901</span>
+<span class="go">Epoch [2/10], Loss: 14.2365</span>
+<span class="go">Epoch [3/10], Loss: 14.2638</span>
+<span class="go">Epoch [4/10], Loss: 14.2251</span>
+<span class="go">Epoch [5/10], Loss: 14.2316</span>
+<span class="go">Epoch [6/10], Loss: 14.0655</span>
+<span class="go">Epoch [7/10], Loss: 14.0691</span>
+<span class="go">Epoch [8/10], Loss: 14.0698</span>
+<span class="go">Epoch [9/10], Loss: 14.0007</span>
+<span class="go">Epoch [10/10], Loss: 13.9704</span>
 </pre></div>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchfry.transforms.FastFoodLayer.FastFoodLayer.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/torchfry/transforms/FastFoodLayer.html#FastFoodLayer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchfry.transforms.FastFoodLayer.FastFoodLayer.forward" title="Link to this definition"></a></dt>
-<dd><p>Applies the Fastfood transform to the input tensor to approximate
-kernel expansions efficiently in loglinear time.</p>
+<dd><p>Applies the Fastfood transform to the input tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor of shape (N, L, H, D), where N is the batch size and D
@@ -266,16 +276,9 @@ function has been applied.</p>
 </dd>
 </dl>
 <p class="rubric">References</p>
-<aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id2" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
-<p><a class="reference external" href="https://github.com/HazyResearch/structured-nets">https://github.com/HazyResearch/structured-nets</a></p>
-</aside>
-<aside class="footnote brackets" id="id3" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
-<p><a class="reference external" href="https://github.com/cs1160701/OnLearningTheKernel">https://github.com/cs1160701/OnLearningTheKernel</a></p>
-</aside>
-</aside>
+<p>We used code from these repos to construct our Hadamard matrix quickly.</p>
+<p><a class="reference external" href="https://github.com/HazyResearch/structured-nets">https://github.com/HazyResearch/structured-nets</a>
+<a class="reference external" href="https://github.com/cs1160701/OnLearningTheKernel">https://github.com/cs1160701/OnLearningTheKernel</a></p>
 </dd></dl>
 
 </section>
@@ -284,7 +287,7 @@ function has been applied.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Fastfood Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Torch &amp; Fried Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="RKSLayer.html" class="btn btn-neutral float-right" title="RKSLayer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
