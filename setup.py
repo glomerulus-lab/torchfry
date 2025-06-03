@@ -9,8 +9,8 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 def setup_package():
     setup(
-        name="fastfood_torch",
-        version="0.1.0",
+        name="torchfry",
+        version="1.0.0",
         author="Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Josh Sonnen",
         description="Provide PyTorch layers and networks that utilize the Fastfood algorithm and Random Kitchen Sink algorithms.",
         long_description=long_description,

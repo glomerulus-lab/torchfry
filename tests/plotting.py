@@ -1,11 +1,11 @@
 """
 Visualization Script for Neural Network Experiments
 
-This script visualizes results from training experiments with FastFood and RKS projection layers.
+This script visualizes results from training experiments with Fastfood and RKS projection layers.
 It loads experiment data from JSON files, calculates statistics including confidence intervals,
 and generates plots to compare performance across different configurations.
 
-The script supports filtering by layer type (FastFood or RKS), custom y-axis metrics,
+The script supports filtering by layer type (Fastfood or RKS), custom y-axis metrics,
 and confidence interval visualization to analyze the reliability of results.
 
 Results are saved as PNG files in the Plots directory, with automated naming based on
@@ -65,7 +65,7 @@ def parse_json(filename, yaxis, args):
         
         for trial in data:
             # Filter out RKS or FF runs if specified in arguments
-            if args.ff and trial["Projection Layer"] == "FastFood_Layer":
+            if args.ff and trial["Projection Layer"] == "Fastfood_Layer":
                 continue
             if args.rks and trial["Projection Layer"] == "RKS_Layer":
                 continue

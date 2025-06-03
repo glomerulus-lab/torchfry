@@ -13,3 +13,4 @@ tests/results
 __pycache__
 *.pyc
 TODO.txt
+_build/

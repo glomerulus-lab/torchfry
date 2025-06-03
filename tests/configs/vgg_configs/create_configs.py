@@ -1,5 +1,5 @@
 """
-Generate JSON configuration files for FastFoodLayer and RKSLayer experiments using
+Generate JSON configuration files for FastfoodLayer and RKSLayer experiments using
 combinations of learnable parameter settings. Files are saved in the current directory.
 """
 
@@ -17,17 +17,17 @@ base_config = {
     "nonlinearity": False
 }
 
-# Generate FastFoodLayer configurations
+# Generate FastfoodLayer configurations
 for learn_S, learn_G, learn_B in product([False, True], repeat=3):
     config = {
-        "layer": "FastFoodLayer",
+        "layer": "FastfoodLayer",
         "hadamard": "Dao",
         "learn_S": learn_S,
         "learn_G": learn_G,
         "learn_B": learn_B
     }
     config.update(base_config)
-    filename = f"FastFood_S{int(learn_S)}_G{int(learn_G)}_B{int(learn_B)}.json"
+    filename = f"Fastfood_S{int(learn_S)}_G{int(learn_G)}_B{int(learn_B)}.json"
     with open(filename, "w") as f:
         json.dump(config, f, indent=4)
 

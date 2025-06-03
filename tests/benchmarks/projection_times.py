@@ -4,7 +4,7 @@ Benchmarking Projection Times for Fastfood and Random Kitchen Sink Methods
 This script compares the speed of our random feature map methods,
 such as Random Kitchen Sinks (RKS) and Fastfood transforms, across varying input dimensions.
 It includes both CPU and GPU-based implementations using scikit-learn, scikit-learn-extra,
-and fastfood-torch. The results are visualized as log-scaled runtime plots.
+and torchfry. The results are visualized as log-scaled runtime plots.
 
 Functions:
 ---------
@@ -39,8 +39,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.kernel_approximation import RBFSampler
 from sklearn_extra.kernel_approximation import Fastfood
-from torchfry.transforms import FastFoodLayer, RKSLayer
-import time  
+from torchfry.transforms import FastfoodLayer, RKSLayer
+import time
 import torch
 
 def exact_rbf_sampler(input_dims, num_runs=10):
@@ -148,7 +148,7 @@ def FF_Layer(input_dims, num_runs=10):
         x = torch.tensor(x, dtype=torch.float32, device=device)
 
         output_dim = dim * 4
-        fast_food_obj = FastFoodLayer(input_dim=dim, output_dim=output_dim, scale=scale, device=device, hadamard='Torch')
+        fast_food_obj = FastfoodLayer(input_dim=dim, output_dim=output_dim, scale=scale, device=device, hadamard='Torch')
 
         total_time = 0
         torch.cuda.synchronize()

@@ -1,4 +1,3 @@
-
 """
 Benchmarking Approximation Error for Fastfood and Random Kitchen Sink Methods
 
@@ -14,10 +13,10 @@ Functions:
     Computes the approximation error of scikit-learn's RBFSampler (CPU) against the exact RBF kernel.
 
 - RKS_GPU_layer(x, exact, output_dims): 
-    Computes the approximation error of this repo's Random Kitchen Sink layer (GPU) using fastfood-torch.
+    Computes the approximation error of this repo's Random Kitchen Sink layer (GPU) using torchfry.
 
 - FF_GPU_layer(x, exact, output_dims): 
-    Computes the approximation error of this repo's Fastfood layer (GPU) using fastfood-torch.
+    Computes the approximation error of this repo's Fastfood layer (GPU) using torchfry.
 
 Usage:
 -----
@@ -37,7 +36,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import rbf_kernel
 from sklearn.kernel_approximation import RBFSampler
-from torchfry.transforms import FastFoodLayer, RKSLayer
+from torchfry.transforms import FastfoodLayer, RKSLayer
 
 def exact_rbf_kernel(x, exact, output_dims):
     #rks error
@@ -78,7 +77,7 @@ def FF_GPU_layer(x, exact, output_dims):
     x = torch.tensor(x, dtype=torch.float32, device=device)
 
     for dim in output_dims:
-        fast_food_obj = FastFoodLayer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device, hadamard='Dao')
+        fast_food_obj = FastfoodLayer(input_dim=x.shape[1], output_dim=dim, scale=scale, device=device, hadamard='Dao')
         phi = fast_food_obj.forward(x)
 
         ff_approx = (phi @ phi.T).cpu().detach().numpy()

@@ -4,32 +4,36 @@ import torch.nn as nn
 
 class RKSLayer(nn.Module):
     """
-    This layer explicitly builds a dense matrix of random Gaussian noise. Without the nonlinearity,
-    this is simply a linear layer.
+    Implementation of the Random Kitchen Sink layer for efficient random feature mapping.
+
+    This layer approximates a dense random projection using the Random Kitchen Sink 
+    algorithm, which utilizes a random Gaussian matrix. The layer explicitly builds a 
+    dense matrix of random Gaussian noise for this. If no nonlinearity is applied, this
+    is simply a linear layer. The scale is matched to FastfoodLayer as well.
 
     Parameters
     ----------
         input_dim: int 
-            The input dimension of the features.
+            The input data feature dimension. (:math:`d`)
         output_dim: int 
-            The desired output dimension of the layer.
+            The output dimension to be projected into. (:math:`n`)
         scale: float 
-            Scalar factor for normalization
+            Scalar factor for normalization. (:math:`\sigma`)
         learn_G: bool 
-            If True, allows the Random Gaussian Matrix G to be learnable.
+            If True, allows the random Gaussian matrix :math:`G` to be learnable.
         nonlinearity: bool
-            Applies the nonlinearity of cos(Vx + u)
+            If True, apply nonlinearity of :math:`cos(Vx + u)`.
         device: torch.device
-            The device on which to allocate the parameters.
+            The device on which computations will be performed.
     
     References
     ----------
-    .. [1] Le, Q., Sarlós, T., & Smola, A. (2018). Fastfood: Approximate Kernel Expansions in Loglinear Time.
-        https://arxiv.org/pdf/1408.3060
+    .. [1] Rahimi, A. & Recht, B. (2007). Random features for large-scale kernel machines.
+        https://dl.acm.org/doi/10.5555/2981562.2981710
     
     Examples
     --------
-    A simple example of the Random Kitchen Sink Layer on a linear regression dataset with noise.
+    A simple example of the Random Kitchen Sink layer on a linear regression dataset with noise.
 
     >>> import torch
     >>> import torch.nn as nn
@@ -70,7 +74,6 @@ class RKSLayer(nn.Module):
     Epoch [8/10], Loss: 12.9570
     Epoch [9/10], Loss: 13.0187
     Epoch [10/10], Loss: 13.1325
-
     """
     def __init__(self, input_dim, output_dim, scale, learn_G=False, device=None, nonlinearity=True):
         super(RKSLayer, self).__init__()
@@ -89,6 +92,32 @@ class RKSLayer(nn.Module):
         else:
             # Use a fixed random Gaussian matrix for G
             self.G = nn.Parameter((1 / self.scale) * torch.randn(input_dim, output_dim, device=self.device), requires_grad=False)
+
+    def forward(self, x):
+        """
+        Applies the Random Kitchen Sink transform to the input tensor by performing
+        matrix multiplication against the random Gaussian matrix, optionally followed
+        by cosine nonlinearity.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor of shape (batch_size, input_dim).
+
+        Returns
+        -------
+        X: torch.Tensor
+            Transformed tensor of shape (batch_size, output_dim) after projection, 
+            optionally passed through a cosine-based nonlinearity if enabled.
+        """
+
+        # Project
+        result = x @ self.G
+
+        # If desired, apply internal nonlinearity
+        if self.nonlinearity:
+            result = self.phi(result)
+        return result
 
     def phi(self, x):
         """
@@ -112,7 +141,7 @@ class RKSLayer(nn.Module):
         U = 2 * torch.pi * torch.rand(self.output_dim, device=self.device)
 
         # Add the uniform distribution to x
-        # Out of place: x = x + u
+        # Out of place operation: x = x + u
         x.add_(U)
 
         # Apply the cosine function to x, adding U for randomness
@@ -123,31 +152,4 @@ class RKSLayer(nn.Module):
         x.mul_(math.sqrt(2.0 / self.output_dim))
 
         return x
-
     
-
-    def forward(self, x):
-        """
-        The forward function for the Random Kitchen Sink function.
-        It is a matrix multiplication with the G matrix. Then an optional
-        phi nonlinearity is applied. 
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor of shape (N, L, H, D), where N is the batch size 
-            and D is the input feature dimension.
-
-        Returns
-        -------
-        X: torch.Tensor
-            Transformed tensor of shape (N, L, H, output_dim) after projection 
-            and optional nonlinearity.
-        """
-
-        # Project and add offset
-        result = x @ self.G
-
-        if self.nonlinearity:            # If desired internal nonlinearity
-            result = self.phi(result)    # Nonlinearity
-        return result

@@ -6,8 +6,14 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Fastfood'
-author = 'Jed Christian Pagcaliwagan, Joshua Sonnen, Robert Bates'
+import os
+import sys
+ 
+sys.path.insert(0, os.path.abspath('../'))
+
+project = 'Torched and Fried'
+author = 'Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Josh Sonnen'
+copyright = '2025, Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Josh Sonnen'
 release = 'Spring 2025'
 
 # -- General configuration ---------------------------------------------------
@@ -21,12 +27,11 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
-import os
-import sys
- 
-sys.path.insert(0, os.path.abspath('../'))
+exclude_patterns = [
+    '_build', 
+    'Thumbs.db', 
+    '.DS_Store',
+    ]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

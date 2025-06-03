@@ -1,11 +1,11 @@
 """
 LeNet Training Script
 
-This script runs experiments for training LeNet models on MNIST using FastFood or RKS projection layers.
+This script runs experiments for training LeNet models on MNIST using Fastfood or RKS projection layers.
 It loads configurations from a JSON file, runs trials according to these configs, and saves results.
 
 The script supports two projection layers:
-- FastFoodLayer: Implements the FastFood transform for parameter reduction
+- FastfoodLayer: Implements the Fastfood transform for parameter reduction
 - RKSLayer: Implements Random Kitchen Sinks for parameter reduction
 
 Results are saved as a JSON file in the Results directory, including accuracy metrics,
@@ -20,7 +20,7 @@ from torchvision import datasets, transforms
 import torch.nn as nn
 import torch.optim as optim
 import time
-from torchfry.transforms import FastFoodLayer, RKSLayer
+from torchfry.transforms import FastfoodLayer, RKSLayer
 from torchfry.networks import LeNet
 
 # Device for operations
@@ -68,7 +68,7 @@ def parse_all_args():
 
 # Mapping of layer names to their corresponding classes
 layer_map = {
-    "FastFoodLayer": FastFoodLayer,
+    "FastfoodLayer": FastfoodLayer,
     "RKSLayer": RKSLayer
 }
 
