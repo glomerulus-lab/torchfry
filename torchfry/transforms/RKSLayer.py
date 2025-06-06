@@ -4,6 +4,8 @@ import torch.nn as nn
 
 class RKSLayer(nn.Module):
     """
+    RKSLayer(input_dim, output_dim, scale, learn_G=False, device=None, nonlinearity=True)
+
     Implementation of the Random Kitchen Sink layer for efficient random feature mapping.
 
     This layer approximates a dense random projection using the Random Kitchen Sink 
@@ -121,7 +123,11 @@ class RKSLayer(nn.Module):
 
     def phi(self, x):
         """
-        Apply random Fourier feature mapping using cosine transformation.
+        Apply random Fourier feature mapping using cosine transformation:
+
+        .. math::
+
+            \cos(Vx + u)
 
         This operation adds a random phase shift to the input tensor and applies
         a cosine nonlinearity, effectively projecting the data into a randomized

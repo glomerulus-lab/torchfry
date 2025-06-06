@@ -3,6 +3,8 @@ from torchfry.transforms import FastfoodLayer
 
 class MLP(nn.Module):
     """
+    MLP(features, classes, widths, layer=FastfoodLayer, proj_args={})
+
     Multi-Layer Perceptron-based model (MLP) that replaces the stacked FC layers with
     random feature layers (e.g., FastfoodLayer, RKSLayer), each followed by batch 
     normalization and ReLU activation, ending with a FC linear layer for classification. 
@@ -16,22 +18,23 @@ class MLP(nn.Module):
     Parameters
     ----------
     features : int
-        The dimension of the input features.
+        Number of features for the projection layer.
     classes : int
         Number of output classes for classification.
     widths : list of int
         List containing the widths (number of neurons) for each hidden layer.
-    proj_args : dict
-        Additional keyword arguments to pass to the projection layers.
-    projection_layer : nn.Module class, (default=FastfoodLayer)
+    projection_layer : nn.Module
         The type of projection layer to use in hidden layers.
+    proj_args : dict
+        Additional arguments to pass to the projection layer (e.g., scale,
+        device, learnable flags, etc.).
     
     Notes
     -----
     This model is primarily run on the Fashion MNIST dataset, but supports CIFAR-10 as
     well.
     """
-    def __init__(self, features, classes, widths, proj_args, layer=FastfoodLayer):
+    def __init__(self, features, classes, widths, layer=FastfoodLayer, proj_args={}):
         super().__init__()
         # Sequential Placeholder
         layers = []

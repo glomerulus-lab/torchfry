@@ -5,6 +5,8 @@ from torchfry.transforms import FastfoodLayer
 
 class VGG(nn.Module):
     """
+    VGG(input_shape=(3, 32, 32), features=512, classes=10, projection_layer=FastfoodLayer, proj_args={})
+
     VGG-based model that uses a pre-trained VGG-16BN model from the Visual Geometry Group.
     It consists of 13 convolutional layers, each followed by batch normalization and ReLU 
     activation, some followed by a max-pooling layer for a total of 5, then 2 FC linear 
@@ -26,22 +28,23 @@ class VGG(nn.Module):
 
     Parameters
     ----------
-    projection_layer : nn.Module
-        The type of projection layer to use within the classifier layers
     input_shape : tuple of int
         Shape of the input images in (channels, height, width) format.
     features : int
-        Number of features for the classifier layers 
+        Number of features for the classifier layers.
     classes : int
-        Number of output classes for classification
-    proj_args : dict or None
-        Additional keyword arguments to pass to the projection layers.
+        Number of output classes for classification.
+    projection_layer : nn.Module
+        The type of projection layer to use in hidden layers.
+    proj_args : dict
+        Additional arguments to pass to the projection layer (e.g., scale,
+        device, learnable flags, etc.).
 
     Notes
     -----
     This model is programmed to run on the CIFAR-10 dataset.
     """
-    def __init__(self, projection_layer=FastfoodLayer, input_shape=(3, 32, 32), features=512, classes=10, proj_args=None):
+    def __init__(self, input_shape=(3, 32, 32), features=512, classes=10, projection_layer=FastfoodLayer, proj_args={}):
         super(VGG, self).__init__()
         # Load pre-trained VGG16 with batch normalization
         vgg = models.vgg16_bn(weights=None)

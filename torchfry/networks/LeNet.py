@@ -4,6 +4,8 @@ from torchfry.transforms import FastfoodLayer
 
 class LeNet(nn.Module):
     """
+    LeNet(features=1024, projection_layer=FastfoodLayer, proj_args={})
+    
     LeNet-based model similar to Deep Fried Convnets. This model replaces the traditional 
     FC layer with a random feature layer (e.g., FastfoodLayer, RKSLayer), followed by 
     batch normalization and ReLU activation, ending with a FC linear layer for 
@@ -17,12 +19,12 @@ class LeNet(nn.Module):
 
     Parameters
     ----------
-    projection_layer: nn.Module
-        The layer type to use (FastfoodLayer or RKSLayer)
     features: int
-        Number of features for the projection layer
-    proj_args: list
-        Additional arguments to pass to the projection layer (e.g., input_dim, scale,
+        Number of features for the projection layer.
+    projection_layer: nn.Module
+        The type of projection layer to use in hidden layers.
+    proj_args: dict
+        Additional arguments to pass to the projection layer (e.g., scale,
         device, learnable flags, etc.)
     
     References
@@ -34,7 +36,7 @@ class LeNet(nn.Module):
     -----
     This model is programmed to run on the CIFAR-10 dataset.
     """
-    def __init__(self, projection_layer=FastfoodLayer, features=1024, proj_args={}):
+    def __init__(self, features=1024, projection_layer=FastfoodLayer, proj_args={}):
         super(LeNet, self).__init__()
         # Convolutional layers matching Caffe definition
         # Caffe: (Convolutional Architecture for Fast Feature Embedding)

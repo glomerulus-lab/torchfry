@@ -61,6 +61,8 @@ class hadamard_transform_matmul(nn.Module):
     
 class FastfoodLayer(nn.Module):
     """
+    FastfoodLayer(input_dim, output_dim, scale=1, learn_S=False, learn_G=False, learn_B=False, device=None, nonlinearity=True, hadamard=None)
+
     Implementation of Fastfood transformation layer for efficient random feature mapping.
 
     This layer approximates a dense random projection using the Fastfood algorithm,
@@ -320,7 +322,11 @@ class FastfoodLayer(nn.Module):
 
     def phi(self, x):
         """
-        Apply random Fourier feature mapping using cosine transformation.
+        Apply random Fourier feature mapping using cosine transformation:
+
+        .. math::
+
+            \cos(Vx + u)
 
         This operation adds a random phase shift to the input tensor and applies
         a cosine nonlinearity, effectively projecting the data into a randomized
