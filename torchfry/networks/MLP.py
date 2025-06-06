@@ -9,7 +9,7 @@ class MLP(nn.Module):
     
     Network architecture is as follows::
 
-        Fastfood/RKS -> BN -> ReLU) * n -> FC Linear (Output)
+        (Fastfood/RKS -> BN -> ReLU) * n -> FC Linear (Output)
 
     Where ``n`` is the desired number of stacked projection layers.
 
