@@ -12,8 +12,8 @@ import sys
 sys.path.insert(0, os.path.abspath('../'))
 
 project = 'Torched and Fried'
-author = 'Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Josh Sonnen'
-copyright = '2025, Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Josh Sonnen'
+author = 'Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Joshua Sonnen'
+copyright = '2025, Robert Bates, Kameron Decker Harris, Jed Christian Pagcaliwagan, Joshua Sonnen'
 release = 'Spring 2025'
 
 # -- General configuration ---------------------------------------------------
