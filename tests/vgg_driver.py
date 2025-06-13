@@ -63,6 +63,12 @@ def parse_all_args():
     parser = argparse.ArgumentParser(description="Run training using config JSON")
     parser.add_argument('--config', type=str, required=True, help="Path to the config JSON file")
     parser.add_argument('--save', type=str, required=True, help="JSON file name to save results")
+
+    if not args.config:
+        parser.print_usage()
+        print("error: the following argument is required: --config")
+        exit()
+        
     return parser.parse_args()
 
 # Mapping of layer names to their corresponding classes
