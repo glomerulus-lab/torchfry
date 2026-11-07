@@ -26,6 +26,8 @@ The following packages are needed for the files in the `tests` directory:
 - **matplotlib**
 - **seaborn**
 
+Optional: [Dao AI lab fast Hadamard transform library](https://github.com/Dao-AILab/fast-hadamard-transform)
+
 <h2>Installation</h2>
 
 Navigate to the directory containing the project's `setup.py` file and run:
@@ -34,7 +36,9 @@ pip install .
 ```
 This will install PyTorch (and its dependencies), SciPy, and the Torched and Fried module (named torchfry). 
 
-The Fastfood layer can use different implementations of the Hadamard matrix transformation, each with different speeds. The test results included in this document utilize an implementation of the Fast Hadamard Transform (Dao, [2022](https://github.com/Dao-AILab/fast-hadamard-transform)), written in CUDA to leverage GPU parallelization with a PyTorch interface for easy use.
+The Fastfood layer can use different implementations of the Hadamard matrix transformation, each with different speeds. 
+
+The fast Hadamard transform from Tri Dao's lab is required to leverage GPU parallelization via `FastFoodLayer(..., hadamard="Dao")`.
 
 <h2>Usage</h2>
 
